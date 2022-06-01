@@ -1,0 +1,17 @@
+syntax = "proto3";
+package gaia.usc.v1beta1;
+
+option go_package = "github.com/USC-Developers/gaia/x/usc/types";
+option (gogoproto.goproto_getters_all) = false;
+
+import "gogoproto/gogo.proto";
+
+import "gaia/usc/v1beta1/usc.proto";
+
+// GenesisState defines the x/usc module genesis state.
+message GenesisState {
+  // params defines all the module paramaters.
+  Params params = 1 [
+    (gogoproto.nullable) = false
+  ];
+}

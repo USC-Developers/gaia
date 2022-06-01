@@ -1,0 +1,32 @@
+syntax = "proto3";
+package gaia.usc.v1beta1;
+
+option go_package = "github.com/USC-Developers/gaia/x/usc/types";
+option (gogoproto.goproto_getters_all) = false;
+
+import "gogoproto/gogo.proto";
+import "google/protobuf/duration.proto";
+
+// Params defines the parameters for the x/usc module.
+message Params {
+  option (gogoproto.equal) = true;
+  option (gogoproto.goproto_stringer) = false;
+
+  // redeem_dur defines USC -> collateral redeem duration (how long does it takes to convert).
+  google.protobuf.Duration redeem_dur = 1 [
+    (gogoproto.moretags) = "yaml:\"redeem_dur\"",
+    (gogoproto.nullable) = false,
+    (gogoproto.stdduration) = true
+  ];
+
+  // collateral_denoms defines a set of collateral coin denoms that are supported by the module.
+  repeated string collateral_denoms = 2 [
+    (gogoproto.moretags) = "yaml:\"collateral_denoms\"",
+    (gogoproto.nullable) = false
+  ];
+
+  // usc_denom defines the USC coin denom.
+  string usc_denom = 3 [
+    (gogoproto.moretags) = "yaml:\"usc_denom\""
+  ];
+}

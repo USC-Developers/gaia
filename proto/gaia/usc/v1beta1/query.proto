@@ -1,0 +1,46 @@
+syntax = "proto3";
+package gaia.usc.v1beta1;
+
+option go_package = "github.com/USC-Developers/gaia/x/usc/types";
+option (gogoproto.goproto_getters_all) = false;
+
+import "gogoproto/gogo.proto";
+import "google/api/annotations.proto";
+import "cosmos/base/v1beta1/coin.proto";
+
+import "gaia/usc/v1beta1/usc.proto";
+
+// Query defines the gRPC querier service.
+service Query {
+  // Pool queries the collateral balance pool info.
+  rpc Pool(QueryPoolRequest) returns (QueryPoolResponse) {
+    option (google.api.http).get = "/gaia/usc/v1beta1/pool";
+  }
+
+  // Params queries the module parameters.
+  rpc Params(QueryParamsRequest) returns (QueryParamsResponse) {
+    option (google.api.http).get = "/gaia/usc/v1beta1/params";
+  }
+}
+
+// QueryPoolRequest is request type for Query/Pool RPC method.
+message QueryPoolRequest {}
+
+// QueryPoolResponse is response type for the Query/Pool RPC method.
+message QueryPoolResponse {
+  repeated cosmos.base.v1beta1.Coin collateral_amount = 1 [
+    (gogoproto.moretags) = "yaml:\"collateral_amount\"",
+    (gogoproto.nullable) = false
+  ];
+}
+
+// QueryParamsRequest is request type for the Query/Params RPC method.
+message QueryParamsRequest {}
+
+// QueryParamsResponse is response type for the Query/Params RPC method.
+message QueryParamsResponse {
+  Params params = 1 [
+    (gogoproto.moretags) = "yaml:\"params\"",
+    (gogoproto.nullable) = false
+  ];
+}

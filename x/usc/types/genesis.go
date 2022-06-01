@@ -1,0 +1,35 @@
+package types
+
+import (
+	"encoding/json"
+	"fmt"
+
+	"github.com/cosmos/cosmos-sdk/codec"
+)
+
+// DefaultGenesisState returns GenesisState with defaults.
+func DefaultGenesisState() *GenesisState {
+	return &GenesisState{
+		Params: DefaultParams(),
+	}
+}
+
+// GetGenesisStateFromAppState returns x/usc GenesisState given raw application genesis state.
+func GetGenesisStateFromAppState(cdc codec.JSONCodec, appState map[string]json.RawMessage) *GenesisState {
+	var genesisState GenesisState
+
+	if appState[ModuleName] != nil {
+		cdc.MustUnmarshalJSON(appState[ModuleName], &genesisState)
+	}
+
+	return &genesisState
+}
+
+// ValidateBasic perform a basic GenesisState validation.
+func (s GenesisState) ValidateBasic() error {
+	if err := s.Params.ValidateBasic(); err != nil {
+		return fmt.Errorf("params: %w", err)
+	}
+
+	return nil
+}

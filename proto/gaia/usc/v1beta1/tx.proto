@@ -1,0 +1,56 @@
+syntax = "proto3";
+package gaia.usc.v1beta1;
+
+option go_package = "github.com/USC-Developers/gaia/x/usc/types";
+option (gogoproto.equal_all) = false;
+option (gogoproto.goproto_getters_all) = false;
+
+import "gogoproto/gogo.proto";
+import "cosmos/base/v1beta1/coin.proto";
+
+// Msg defines the x/usc Msg service.
+service Msg {
+  // MintUSC defines a method for converting collateral coins into USC coin.
+  rpc MintUSC(MsgMintUSC) returns (MsgMintUSCResponse);
+
+  // RedeemCollateral defines a method for converting USC coin into collateral coins from the module pool.
+  rpc RedeemCollateral(MsgRedeemCollateral) returns (MsgRedeemCollateralResponse);
+}
+
+// MsgMintUSC defines a SDK message for the Msg/MintUSC request type.
+message MsgMintUSC {
+  string address = 1 [
+    (gogoproto.moretags) = "yaml:\"address\""
+  ];
+  repeated cosmos.base.v1beta1.Coin collateral_amount = 2 [
+    (gogoproto.moretags) = "yaml:\"collateral_amount\"",
+    (gogoproto.nullable) = false
+  ];
+}
+
+// MsgMintUSCResponse defines the Msg/MintUSC response type.
+message MsgMintUSCResponse {
+  cosmos.base.v1beta1.Coin minted_amount = 1 [
+    (gogoproto.moretags) = "yaml:\"minted_amount\"",
+    (gogoproto.nullable) = false
+  ];
+}
+
+// MsgRedeemCollateral defines a SDK message for the Msg/RedeemCollateral request type.
+message MsgRedeemCollateral {
+  string address = 1 [
+    (gogoproto.moretags) = "yaml:\"address\""
+  ];
+  cosmos.base.v1beta1.Coin usc_amount = 2 [
+    (gogoproto.moretags) = "yaml:\"amount\"",
+    (gogoproto.nullable) = false
+  ];
+}
+
+// MsgMintUSCResponse defines the Msg/RedeemCollateral response type.
+message MsgRedeemCollateralResponse {
+  repeated cosmos.base.v1beta1.Coin redeemed_amount = 1 [
+    (gogoproto.moretags) = "yaml:\"redeemed_amount\"",
+    (gogoproto.nullable) = false
+  ];
+}
