@@ -24,7 +24,8 @@ func (k queryServer) Pool(goCtx context.Context, req *types.QueryPoolRequest) (*
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
 	return &types.QueryPoolResponse{
-		CollateralAmount: k.Keeper.Pool(ctx),
+		ActivePool:    k.Keeper.ActivePool(ctx),
+		RedeemingPool: k.Keeper.RedeemingPool(ctx),
 	}, nil
 }
 

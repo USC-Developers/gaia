@@ -171,7 +171,8 @@ var (
 		liquiditytypes.ModuleName:      {authtypes.Minter, authtypes.Burner},
 		ibctransfertypes.ModuleName:    {authtypes.Minter, authtypes.Burner},
 		//
-		uscTypes.ModuleName: {authtypes.Minter, authtypes.Burner},
+		uscTypes.ActivePoolName:    {authtypes.Minter},
+		uscTypes.RedeemingPoolName: {authtypes.Burner},
 	}
 )
 
@@ -577,7 +578,6 @@ func NewGaiaApp(
 		slashingtypes.ModuleName,
 		govtypes.ModuleName,
 		minttypes.ModuleName,
-		crisistypes.ModuleName,
 		ibctransfertypes.ModuleName,
 		ibchost.ModuleName,
 		icatypes.ModuleName,
@@ -593,6 +593,8 @@ func NewGaiaApp(
 		vestingtypes.ModuleName,
 		//
 		uscTypes.ModuleName,
+		//
+		crisistypes.ModuleName,
 	)
 
 	app.mm.RegisterInvariants(&app.CrisisKeeper)

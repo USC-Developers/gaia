@@ -3,10 +3,12 @@ package keeper
 import (
 	"fmt"
 	"math"
+	"sort"
 	"strings"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkErrors "github.com/cosmos/cosmos-sdk/types/errors"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	paramsTypes "github.com/cosmos/cosmos-sdk/x/params/types"
 	"github.com/cosmos/gaia/v7/x/usc/types"
@@ -96,9 +98,97 @@ func (k Keeper) Init(ctx sdk.Context) error {
 	return nil
 }
 
-// Pool returns current module pool collateral balance.
-func (k Keeper) Pool(ctx sdk.Context) sdk.Coins {
-	poolAcc := k.authKeeper.GetModuleAccount(ctx, types.ModuleName)
+// ActivePool returns current module's Active pool collateral balance.
+func (k Keeper) ActivePool(ctx sdk.Context) sdk.Coins {
+	poolAcc := k.authKeeper.GetModuleAccount(ctx, types.ActivePoolName)
 
 	return k.bankKeeper.GetAllBalances(ctx, poolAcc.GetAddress())
+}
+
+// RedeemingPool returns current module's Redeeming pool collateral balance.
+func (k Keeper) RedeemingPool(ctx sdk.Context) sdk.Coins {
+	poolAcc := k.authKeeper.GetModuleAccount(ctx, types.RedeemingPoolName)
+
+	return k.bankKeeper.GetAllBalances(ctx, poolAcc.GetAddress())
+}
+
+// ConvertCollateralsToUSC converts collateral coins to USC coin in 1:1 relation.
+func (k Keeper) ConvertCollateralsToUSC(ctx sdk.Context, colCoins sdk.Coins) (sdk.Coin, error) {
+	uscCoin := sdk.NewCoin(k.USCDenom(ctx), sdk.ZeroInt())
+	collateralDenomSet := k.CollateralDenomSet(ctx)
+	for _, colCoin := range colCoins {
+		// Check if denom is supported
+		if _, ok := collateralDenomSet[colCoin.Denom]; !ok {
+			return sdk.Coin{}, sdkErrors.Wrapf(types.ErrUnsupportedCollateral, "denom (%s)", colCoin.Denom)
+		}
+
+		// Convert collateral -> USC, add USCs
+		colConvertedCoin, err := sdk.ConvertCoin(colCoin, uscCoin.Denom)
+		if err != nil {
+			return sdk.Coin{}, sdkErrors.Wrapf(types.ErrInternal, "converting collateral denom (%s) to USC: %v", colCoin.Denom, err)
+		}
+		uscCoin = uscCoin.Add(colConvertedCoin)
+	}
+
+	return uscCoin, nil
+}
+
+// ConvertUSCToCollaterals converts USC coin to collateral coins in 1:1 relation iterating module's Active pool from the highest supply to the lowest.
+func (k Keeper) ConvertUSCToCollaterals(ctx sdk.Context, uscCoin sdk.Coin) (sdk.Coins, error) {
+	// Check source denom
+	uscDenom := k.USCDenom(ctx)
+	if uscCoin.Denom != uscDenom {
+		return nil, sdkErrors.Wrapf(types.ErrInvalidUSC, "got (%s), expected (%s)", uscCoin.Denom, uscDenom)
+	}
+
+	// Sort active pool coins from the highest supply to the lowest normalizing amounts
+	poolCoins := k.ActivePool(ctx)
+
+	poolCoinsNormalized := make(sdk.Coins, len(poolCoins))
+	for _, poolCoin := range poolCoins {
+		poolCoinsNormalized = append(poolCoinsNormalized, sdk.NormalizeCoin(poolCoin))
+	}
+	sort.Slice(poolCoins, func(i, j int) bool {
+		if poolCoinsNormalized[i].Amount.GT(poolCoinsNormalized[j].Amount) {
+			return true
+		}
+		if poolCoinsNormalized[i].Amount.Equal(poolCoinsNormalized[j].Amount) && poolCoinsNormalized[i].Denom > poolCoinsNormalized[j].Denom {
+			return true
+		}
+		return false
+	})
+
+	// Convert and add collateral coins
+	uscLeft, colCoins := uscCoin, sdk.NewCoins()
+	for _, poolCoin := range poolCoins {
+		// Convert collateral -> USC
+		poolConvertedCoin, err := sdk.ConvertCoin(poolCoin, uscDenom)
+		if err != nil {
+			return nil, sdkErrors.Wrapf(types.ErrInternal, "converting pool denom (%s) to USC: %v", poolCoin.Denom, err)
+		}
+
+		// Reduce USC convert amount
+		uscSubCoin := uscLeft
+		if poolConvertedCoin.IsLT(uscSubCoin) {
+			uscSubCoin = poolConvertedCoin
+		}
+		uscLeft = uscLeft.Sub(uscSubCoin)
+
+		// Convert sub amount to collateral
+		colCoin, err := sdk.ConvertCoin(uscSubCoin, poolCoin.Denom)
+		if err != nil {
+			return nil, sdkErrors.Wrapf(types.ErrInternal, "converting USC to collateral denom (%s): %v", poolCoin.Denom, err)
+		}
+		colCoins = colCoins.Add(colCoin)
+
+		// Check if redeem amount is filled up
+		if uscLeft.IsZero() {
+			break
+		}
+	}
+	if !uscLeft.IsZero() {
+		return nil, sdkErrors.Wrapf(types.ErrInternal, "usc amount (%s) can not be filled up with the pool supply (%s)", uscCoin, poolCoins)
+	}
+
+	return colCoins, nil
 }

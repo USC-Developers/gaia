@@ -6,6 +6,7 @@ option (gogoproto.goproto_getters_all) = false;
 
 import "gogoproto/gogo.proto";
 import "google/protobuf/duration.proto";
+import "cosmos/base/v1beta1/coin.proto";
 
 // Params defines the parameters for the x/usc module.
 message Params {
@@ -28,5 +29,25 @@ message Params {
   // usc_denom defines the USC coin denom.
   string usc_denom = 3 [
     (gogoproto.moretags) = "yaml:\"usc_denom\""
+  ];
+}
+
+// RedeemEntry defines the redeeming queue entry.
+message RedeemEntry {
+  option (gogoproto.equal) = true;
+  option (gogoproto.goproto_stringer) = true;
+
+  string address = 1;
+  repeated cosmos.base.v1beta1.Coin collateral_amount = 2 [
+    (gogoproto.nullable) = false
+  ];
+}
+
+message RedeemEntries {
+  option (gogoproto.equal) = true;
+  option (gogoproto.goproto_stringer) = true;
+
+  repeated RedeemEntry entries = 1 [
+    (gogoproto.nullable) = false
   ];
 }

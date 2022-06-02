@@ -24,5 +24,5 @@ echo "-> Starting node ${node_id}"
   echo "  Node dir: ${node_dir}"
 
   # >>
-  ${COSMOSD} start --home="${node_dir}" --inv-check-period=50 --log_level=${NODE_LOGLEVEL}
+  ${COSMOSD} start --home="${node_dir}" --inv-check-period=2 --log_level=${NODE_LOGLEVEL}
 echo "-> Node stopped"

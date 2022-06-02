@@ -6,6 +6,8 @@
 
 - [gaia/usc/v1beta1/usc.proto](#gaia/usc/v1beta1/usc.proto)
     - [Params](#gaia.usc.v1beta1.Params)
+    - [RedeemEntries](#gaia.usc.v1beta1.RedeemEntries)
+    - [RedeemEntry](#gaia.usc.v1beta1.RedeemEntry)
   
 - [gaia/usc/v1beta1/genesis.proto](#gaia/usc/v1beta1/genesis.proto)
     - [GenesisState](#gaia.usc.v1beta1.GenesisState)
@@ -48,6 +50,37 @@ Params defines the parameters for the x/usc module.
 | `redeem_dur` | [google.protobuf.Duration](#google.protobuf.Duration) |  | redeem_dur defines USC -> collateral redeem duration (how long does it takes to convert). |
 | `collateral_denoms` | [string](#string) | repeated | collateral_denoms defines a set of collateral coin denoms that are supported by the module. |
 | `usc_denom` | [string](#string) |  | usc_denom defines the USC coin denom. |
+
+
+
+
+
+
+<a name="gaia.usc.v1beta1.RedeemEntries"></a>
+
+### RedeemEntries
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `entries` | [RedeemEntry](#gaia.usc.v1beta1.RedeemEntry) | repeated |  |
+
+
+
+
+
+
+<a name="gaia.usc.v1beta1.RedeemEntry"></a>
+
+### RedeemEntry
+RedeemEntry defines the redeeming queue entry.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `address` | [string](#string) |  |  |
+| `collateral_amount` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) | repeated |  |
 
 
 
@@ -144,7 +177,8 @@ QueryPoolResponse is response type for the Query/Pool RPC method.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| `collateral_amount` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) | repeated |  |
+| `active_pool` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) | repeated |  |
+| `redeeming_pool` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) | repeated |  |
 
 
 

@@ -104,7 +104,7 @@ func (AppModule) Name() string {
 
 // RegisterInvariants registers the staking module invariants.
 func (am AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {
-	// TODO: add pool total supply vs USC supply invariant
+	keeper.RegisterInvariants(ir, am.keeper)
 }
 
 // Route returns the message routing key for the module.
@@ -134,7 +134,9 @@ func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONCodec, data json.
 	var genesisState types.GenesisState
 	cdc.MustUnmarshalJSON(data, &genesisState)
 
-	am.keeper.InitGenesis(ctx, genesisState)
+	if err := am.keeper.InitGenesis(ctx, genesisState); err != nil {
+		panic(fmt.Errorf("x/%s module genesis init: %w", types.ModuleName, err))
+	}
 
 	return []abci.ValidatorUpdate{}
 }
@@ -158,7 +160,7 @@ func (am AppModule) BeginBlock(ctx sdk.Context, _ abci.RequestBeginBlock) {
 
 // EndBlock returns the end blocker for the module. It returns no validator updates.
 func (am AppModule) EndBlock(ctx sdk.Context, _ abci.RequestEndBlock) []abci.ValidatorUpdate {
-	return []abci.ValidatorUpdate{}
+	return EndBlocker(ctx, am.keeper)
 }
 
 // AppModuleSimulation functions
