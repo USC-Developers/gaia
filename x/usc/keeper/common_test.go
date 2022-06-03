@@ -1,6 +1,7 @@
 package keeper_test
 
 import (
+	gocontext "context"
 	"testing"
 	"time"
 
@@ -29,7 +30,8 @@ type TestSuite struct {
 	queryClient types.QueryClient
 	msgServer   types.MsgServer
 
-	accAddrs []sdk.AccAddress
+	accAddrs   []sdk.AccAddress
+	verifyPool func()
 }
 
 func (s *TestSuite) SetupTest() {
@@ -46,6 +48,22 @@ func (s *TestSuite) SetupTest() {
 	genAddrs := helpers.AddTestAddrs(app, ctx, 2, genCoins)
 
 	s.app, s.ctx, s.queryClient, s.msgServer, s.accAddrs = app, ctx, queryClient, msgServer, genAddrs
+
+	s.verifyPool = func() {
+		res, err := s.queryClient.Pool(gocontext.Background(), &types.QueryPoolRequest{})
+		s.Require().NoError(err)
+		var activePool []sdk.Coin = s.app.USCKeeper.ActivePool(s.ctx)
+		var redeemPool []sdk.Coin = s.app.USCKeeper.RedeemingPool(s.ctx)
+
+		if len(activePool) > 0 || len(res.ActivePool) > 0 {
+			s.Require().Equal(activePool, res.ActivePool)
+		}
+
+		if len(redeemPool) > 0 || len(res.RedeemingPool) > 0 {
+			s.Require().Equal(redeemPool, res.RedeemingPool)
+		}
+
+	}
 }
 
 func TestUSCKeeper(t *testing.T) {
