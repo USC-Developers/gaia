@@ -43,6 +43,7 @@ type EmptyAppOptions struct{}
 
 func (EmptyAppOptions) Get(o string) interface{} { return nil }
 
+// Setup creates a new Gaia app with the default genesis (if {isCheckTx} is set) and in-memory DB.
 func Setup(t *testing.T, isCheckTx bool, invCheckPeriod uint) *gaiaapp.GaiaApp {
 	t.Helper()
 
