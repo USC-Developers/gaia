@@ -175,6 +175,8 @@ func (s *TestSuite) TestMessages() {
 	accAddr1 := s.accAddrs[1]
 
 	s.verifyPool()
+	s.verifyUSCSupplyInvariant()
+	s.verifyRedeemingQueueInvariant()
 	// Check account balance before minting
 	for _, scenario := range beforeMintBalances {
 		s.T().Run(scenario.description, func(t *testing.T) {
@@ -203,6 +205,8 @@ func (s *TestSuite) TestMessages() {
 	}
 
 	s.verifyPool()
+	s.verifyUSCSupplyInvariant()
+	s.verifyRedeemingQueueInvariant()
 	// Check account balance after minting
 	for _, scenario := range afterMintBalances {
 		s.T().Run(scenario.description, func(t *testing.T) {
@@ -234,6 +238,8 @@ func (s *TestSuite) TestMessages() {
 				assert.Equal("10busd,10usdc,10usdt", uscKeeper.RedeemingPool(s.ctx).String())
 
 				s.verifyPool()
+				s.verifyUSCSupplyInvariant()
+				s.verifyRedeemingQueueInvariant()
 
 				for _, scenario := range afterRedeemRequestBalances {
 					s.T().Run(scenario.description, func(t *testing.T) {
@@ -243,9 +249,11 @@ func (s *TestSuite) TestMessages() {
 				}
 
 				// clear redeeming queue
-				s.app.USCKeeper.EndRedeeming(s.ctx.WithBlockTime(time.Now()))
+				uscKeeper.EndRedeeming(s.ctx.WithBlockTime(time.Now()))
 
 				s.verifyPool()
+				s.verifyUSCSupplyInvariant()
+				s.verifyRedeemingQueueInvariant()
 				// should be equal to balance before minting
 				for _, scenario := range beforeMintBalances {
 					s.T().Run(scenario.description, func(t *testing.T) {

@@ -30,8 +30,10 @@ type TestSuite struct {
 	queryClient types.QueryClient
 	msgServer   types.MsgServer
 
-	accAddrs   []sdk.AccAddress
-	verifyPool func()
+	accAddrs                      []sdk.AccAddress
+	verifyPool                    func()
+	verifyUSCSupplyInvariant      func()
+	verifyRedeemingQueueInvariant func()
 }
 
 func (s *TestSuite) SetupTest() {
@@ -62,8 +64,20 @@ func (s *TestSuite) SetupTest() {
 		if len(redeemPool) > 0 || len(res.RedeemingPool) > 0 {
 			s.Require().Equal(redeemPool, res.RedeemingPool)
 		}
-
 	}
+
+	s.verifyUSCSupplyInvariant = func() {
+		validInvariant := keeper.USCSupplyInvariant(s.app.USCKeeper)
+		_, broken := validInvariant(s.ctx)
+		s.Require().Equal(false, broken)
+	}
+
+	s.verifyRedeemingQueueInvariant = func() {
+		validInvariant := keeper.RedeemingQueueInvariant(s.app.USCKeeper)
+		_, broken := validInvariant(s.ctx)
+		s.Require().Equal(false, broken)
+	}
+
 }
 
 func TestUSCKeeper(t *testing.T) {
