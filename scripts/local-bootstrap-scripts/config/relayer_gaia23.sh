@@ -1,9 +1,9 @@
 # Relayer home directory
-RELAYER_DIR="${HOME}/archway/local/relayer_gaiaAB"
+RELAYER_DIR="${HOME}/USC/local/relayer_gaia23"
 
 # Chain cluster configs
-CHAIN1_CONFIG="config/gaiaA.sh"
-CHAIN2_CONFIG="config/gaiaB.sh"
+CHAIN1_CONFIG="config/gaia-2.sh"
+CHAIN2_CONFIG="config/gaia-3.sh"
 
 # Relayer default IBC timeout
 TIMEOUT="20s"
@@ -16,7 +16,5 @@ TIMEOUT="20s"
 ##   2. Destination port ID;
 ##   3. Order type ("ordered" / "unordered");
 ##   4. Version;
-declare -a chat_pathAB=("1->2" "chat" "chat" "unordered" "chat-1")
-# declare -a chat_pathBA=("2->1" "chat" "chat" "unordered" "chat-1")
-# declare -a PATHS=("chat_pathAB" "chat_pathBA")
-declare -a PATHS=("chat_pathAB")
+declare -a transfer_path23=("1->2" "transfer" "transfer" "unordered" "ics20-1")
+declare -a PATHS=("transfer_path23")

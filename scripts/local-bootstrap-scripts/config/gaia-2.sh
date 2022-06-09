@@ -4,17 +4,17 @@ COSMOSD="gaiad"
 
 # Chain ID
 ## That ID is also used as an account name prefix for default accounts ({CHAIN_ID}_local-bank, {CHAIN_ID}_local-validator-1, ...)
-CHAIN_ID="gaia-1"
+CHAIN_ID="gaia-2"
 
 # Account address prefix
 BECH32_PREFIX="cosmos"
 
 # Node port prefixes
-NODE_P2P_PORT_PREFIX="2666"
-NODE_RPC_PORT_PREFIX="2667"
-NODE_PROXY_PORT_PREFIX="2665"
-NODE_GRPC_PORT_PREFIX="919"
-NODE_GRPC_WEB_PORT_PREFIX="929"
+NODE_P2P_PORT_PREFIX="2676"
+NODE_RPC_PORT_PREFIX="2677"
+NODE_PROXY_PORT_PREFIX="2675"
+NODE_GRPC_PORT_PREFIX="939"
+NODE_GRPC_WEB_PORT_PREFIX="949"
 
 # Local cluster file path base
 ## Account secrets, nodes data and configs, genesis, genTxs, etc.
