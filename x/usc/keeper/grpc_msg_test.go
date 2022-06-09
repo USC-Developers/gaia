@@ -10,11 +10,22 @@ func (s *TestSuite) TestMsgMintUSC() {
 	bankKeeper, uscKeeper := s.app.BankKeeper, s.app.USCKeeper
 	accAddr := s.accAddrs[0]
 
-	coinsToSwap := sdk.NewCoins(
-		sdk.NewCoin("busd", sdk.NewInt(10)),
+	busdSwapAmt, _ := sdk.NewIntFromString("1000000000000000000") // 1.0
+	usdtSwapAmt, _ := sdk.NewIntFromString("1000000")             // 1.0
+	usdcSwapAmt, _ := sdk.NewIntFromString("1000")                // 1.0
+
+	accSwapCoins := sdk.NewCoins(
+		sdk.NewCoin("abusd", busdSwapAmt),
+		sdk.NewCoin("uusdt", usdtSwapAmt),
+		sdk.NewCoin("musdc", usdcSwapAmt),
 	)
 
-	msg := types.NewMsgMintUSC(accAddr, coinsToSwap)
+	uscAmt, _ := sdk.NewIntFromString("3000000000000000000") // 1.0
+	uscExpected := sdk.NewCoin("ausc", uscAmt)
+
+	accBalanceExpected := GenCoins.Sub(accSwapCoins).Add(uscExpected)
+
+	msg := types.NewMsgMintUSC(accAddr, accSwapCoins)
 	require.NoError(msg.ValidateBasic())
 
 	// Send Msg
@@ -23,13 +34,12 @@ func (s *TestSuite) TestMsgMintUSC() {
 
 	// Check result
 	require.NotNil(res)
-	assert.Equal("10usc", res.MintedAmount.String())
+	assert.Equal(uscExpected.String(), res.MintedAmount.String())
 
 	// Check account balance
-	assert.EqualValues(10, bankKeeper.GetBalance(s.ctx, accAddr, "usc").Amount.Int64())
-	assert.EqualValues(90, bankKeeper.GetBalance(s.ctx, accAddr, "busd").Amount.Int64())
+	assert.Equal(accBalanceExpected.String(), bankKeeper.GetAllBalances(s.ctx, accAddr).String())
 
 	// Check pools
-	assert.Equal("10busd", uscKeeper.ActivePool(s.ctx).String())
+	assert.Equal(accSwapCoins.String(), uscKeeper.ActivePool(s.ctx).String())
 	assert.True(uscKeeper.RedeemingPool(s.ctx).IsZero())
 }
