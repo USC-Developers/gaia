@@ -13,27 +13,27 @@ func (k Keeper) RedeemDur(ctx sdk.Context) (res time.Duration) {
 	return
 }
 
-// CollateralDenoms returns supported collateral coin denoms.
-func (k Keeper) CollateralDenoms(ctx sdk.Context) (res []string) {
-	k.paramStore.Get(ctx, types.ParamsKeyCollateralDenoms, &res)
+// CollateralMetas returns supported collateral token metas.
+func (k Keeper) CollateralMetas(ctx sdk.Context) (res []types.TokenMeta) {
+	k.paramStore.Get(ctx, types.ParamsKeyCollateralMetas, &res)
 	return
 }
 
-// CollateralDenomSet returns supported collateral coin denoms set.
-func (k Keeper) CollateralDenomSet(ctx sdk.Context) map[string]struct{} {
-	denoms := k.CollateralDenoms(ctx)
+// CollateralMetasSet returns supported collateral token metas set (key: denom).
+func (k Keeper) CollateralMetasSet(ctx sdk.Context) map[string]types.TokenMeta {
+	metas := k.CollateralMetas(ctx)
 
-	set := make(map[string]struct{}, len(denoms))
-	for _, denom := range denoms {
-		set[denom] = struct{}{}
+	set := make(map[string]types.TokenMeta, len(metas))
+	for _, meta := range metas {
+		set[meta.Denom] = meta
 	}
 
 	return set
 }
 
-// USCDenom returns the USC coin denom.
-func (k Keeper) USCDenom(ctx sdk.Context) (res string) {
-	k.paramStore.Get(ctx, types.ParamsKeyUSCDenom, &res)
+// USCMeta returns the USC token meta.
+func (k Keeper) USCMeta(ctx sdk.Context) (res types.TokenMeta) {
+	k.paramStore.Get(ctx, types.ParamsKeyUSCMeta, &res)
 	return
 }
 
@@ -41,8 +41,8 @@ func (k Keeper) USCDenom(ctx sdk.Context) (res string) {
 func (k Keeper) GetParams(ctx sdk.Context) types.Params {
 	return types.NewParams(
 		k.RedeemDur(ctx),
-		k.CollateralDenoms(ctx),
-		k.USCDenom(ctx),
+		k.CollateralMetas(ctx),
+		k.USCMeta(ctx),
 	)
 }
 

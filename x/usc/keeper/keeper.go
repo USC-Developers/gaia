@@ -1,15 +1,11 @@
 package keeper
 
 import (
-	"fmt"
-	"math"
 	"sort"
-	"strings"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkErrors "github.com/cosmos/cosmos-sdk/types/errors"
-	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	paramsTypes "github.com/cosmos/cosmos-sdk/x/params/types"
 	"github.com/cosmos/gaia/v7/x/usc/types"
 	"github.com/tendermint/tendermint/libs/log"
@@ -22,8 +18,6 @@ type Keeper struct {
 	authKeeper types.AccountKeeper
 	bankKeeper types.BankKeeper
 	paramStore paramsTypes.Subspace
-	//
-	initialized bool
 }
 
 // NewKeeper creates a new usc Keeper instance.
@@ -47,57 +41,6 @@ func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 	return ctx.Logger().With("module", "x/"+types.ModuleName)
 }
 
-// Init performs module's genesis validation and registers USC and collateral denoms.
-// Since AppModuleBasic.ValidateGenesis doesn't have an app state (x/bank genesis in our case), we have to
-// perform a full genesis validation here (in runtime).
-func (k Keeper) Init(ctx sdk.Context) error {
-	if k.initialized {
-		return nil
-	}
-
-	// Build USC and collateral coin denoms set
-	uscDenom := k.USCDenom(ctx)
-	targetDenomSet := k.CollateralDenomSet(ctx)
-	targetDenomSet[uscDenom] = struct{}{}
-
-	// Iterate over all registered x/bank metadata and ensure target denoms are registered
-	uscExponent, minExponent := uint32(0), uint32(math.MaxUint32)
-	k.bankKeeper.IterateAllDenomMetaData(ctx, func(meta banktypes.Metadata) bool {
-		for _, unit := range meta.DenomUnits {
-			if _, ok := targetDenomSet[unit.Denom]; !ok {
-				continue
-			}
-
-			sdk.RegisterDenom(unit.Denom, sdk.NewDecWithPrec(1, int64(unit.Exponent)))
-
-			delete(targetDenomSet, unit.Denom)
-			if unit.Denom == uscDenom {
-				uscExponent = unit.Exponent
-			}
-			if unit.Exponent < minExponent {
-				minExponent = unit.Exponent
-			}
-		}
-		return false
-	})
-	if len(targetDenomSet) > 0 {
-		missingDenoms := make([]string, 0, len(targetDenomSet))
-		for denom := range targetDenomSet {
-			missingDenoms = append(missingDenoms, denom)
-		}
-		return fmt.Errorf("x/bank metadata not found for denoms: [%s]", strings.Join(missingDenoms, ", "))
-	}
-
-	// Check that USC precision is high enough
-	if uscExponent < minExponent {
-		return fmt.Errorf("usc precision (%d) must be GTE that min collateral precision (%d)", uscExponent, minExponent)
-	}
-
-	k.initialized = true
-
-	return nil
-}
-
 // ActivePool returns current module's Active pool collateral balance.
 func (k Keeper) ActivePool(ctx sdk.Context) sdk.Coins {
 	poolAcc := k.authKeeper.GetModuleAccount(ctx, types.ActivePoolName)
@@ -114,18 +57,20 @@ func (k Keeper) RedeemingPool(ctx sdk.Context) sdk.Coins {
 
 // ConvertCollateralsToUSC converts collateral coins to USC coin in 1:1 relation.
 func (k Keeper) ConvertCollateralsToUSC(ctx sdk.Context, colCoins sdk.Coins) (sdk.Coin, error) {
-	uscCoin := sdk.NewCoin(k.USCDenom(ctx), sdk.ZeroInt())
-	collateralDenomSet := k.CollateralDenomSet(ctx)
+	uscMeta, colMetas := k.USCMeta(ctx), k.CollateralMetasSet(ctx)
+
+	uscCoin := uscMeta.NewZeroCoin()
 	for _, colCoin := range colCoins {
 		// Check if denom is supported
-		if _, ok := collateralDenomSet[colCoin.Denom]; !ok {
+		colMeta, ok := colMetas[colCoin.Denom]
+		if !ok {
 			return sdk.Coin{}, sdkErrors.Wrapf(types.ErrUnsupportedCollateral, "denom (%s)", colCoin.Denom)
 		}
 
 		// Convert collateral -> USC, add USCs
-		colConvertedCoin, err := sdk.ConvertCoin(colCoin, uscCoin.Denom)
+		colConvertedCoin, err := colMeta.ConvertCoin(colCoin, uscMeta)
 		if err != nil {
-			return sdk.Coin{}, sdkErrors.Wrapf(types.ErrInternal, "converting collateral denom (%s) to USC: %v", colCoin.Denom, err)
+			return sdk.Coin{}, sdkErrors.Wrapf(types.ErrInternal, "converting collateral token (%s) to USC: %v", colCoin, err)
 		}
 		uscCoin = uscCoin.Add(colConvertedCoin)
 	}
@@ -135,10 +80,11 @@ func (k Keeper) ConvertCollateralsToUSC(ctx sdk.Context, colCoins sdk.Coins) (sd
 
 // ConvertUSCToCollaterals converts USC coin to collateral coins in 1:1 relation iterating module's Active pool from the highest supply to the lowest.
 func (k Keeper) ConvertUSCToCollaterals(ctx sdk.Context, uscCoin sdk.Coin) (sdk.Coins, error) {
+	uscMeta, colMetas := k.USCMeta(ctx), k.CollateralMetasSet(ctx)
+
 	// Check source denom
-	uscDenom := k.USCDenom(ctx)
-	if uscCoin.Denom != uscDenom {
-		return nil, sdkErrors.Wrapf(types.ErrInvalidUSC, "got (%s), expected (%s)", uscCoin.Denom, uscDenom)
+	if uscCoin.Denom != uscMeta.Denom {
+		return nil, sdkErrors.Wrapf(types.ErrInvalidUSC, "got (%s), expected (%s)", uscCoin.Denom, uscMeta.Denom)
 	}
 
 	// Sort active pool coins from the highest supply to the lowest normalizing amounts
@@ -146,7 +92,17 @@ func (k Keeper) ConvertUSCToCollaterals(ctx sdk.Context, uscCoin sdk.Coin) (sdk.
 
 	poolCoinsNormalized := make(sdk.Coins, len(poolCoins))
 	for _, poolCoin := range poolCoins {
-		poolCoinsNormalized = append(poolCoinsNormalized, sdk.NormalizeCoin(poolCoin))
+		poolMeta, ok := colMetas[poolCoin.Denom]
+		if !ok {
+			k.Logger(ctx).Info("Collateral meta not found for ActivePool coin (skip)", "denom", poolCoin.Denom)
+			continue
+		}
+
+		poolCoinNormalized, err := poolMeta.NormalizeCoin(poolCoin, uscMeta)
+		if err != nil {
+			return nil, sdkErrors.Wrapf(types.ErrInternal, "normalizing ActivePool coin (%s): %v", poolCoin, err)
+		}
+		poolCoinsNormalized = append(poolCoinsNormalized, poolCoinNormalized)
 	}
 	sort.Slice(poolCoins, func(i, j int) bool {
 		if poolCoinsNormalized[i].Amount.GT(poolCoinsNormalized[j].Amount) {
@@ -162,9 +118,10 @@ func (k Keeper) ConvertUSCToCollaterals(ctx sdk.Context, uscCoin sdk.Coin) (sdk.
 	uscLeft, colCoins := uscCoin, sdk.NewCoins()
 	for _, poolCoin := range poolCoins {
 		// Convert collateral -> USC
-		poolConvertedCoin, err := sdk.ConvertCoin(poolCoin, uscDenom)
+		poolMeta, _ := colMetas[poolCoin.Denom]
+		poolConvertedCoin, err := poolMeta.ConvertCoin(poolCoin, uscMeta)
 		if err != nil {
-			return nil, sdkErrors.Wrapf(types.ErrInternal, "converting pool denom (%s) to USC: %v", poolCoin.Denom, err)
+			return nil, sdkErrors.Wrapf(types.ErrInternal, "converting pool token (%s) to USC: %v", poolCoin, err)
 		}
 
 		// Reduce USC convert amount
@@ -174,10 +131,10 @@ func (k Keeper) ConvertUSCToCollaterals(ctx sdk.Context, uscCoin sdk.Coin) (sdk.
 		}
 		uscLeft = uscLeft.Sub(uscSubCoin)
 
-		// Convert sub amount to collateral
-		colCoin, err := sdk.ConvertCoin(uscSubCoin, poolCoin.Denom)
+		// Convert sub amount back to collateral
+		colCoin, err := uscMeta.ConvertCoin(uscSubCoin, poolMeta)
 		if err != nil {
-			return nil, sdkErrors.Wrapf(types.ErrInternal, "converting USC to collateral denom (%s): %v", poolCoin.Denom, err)
+			return nil, sdkErrors.Wrapf(types.ErrInternal, "converting USC token (%s) back to collateral denom (%s): %v", uscSubCoin, poolMeta.Denom, err)
 		}
 		colCoins = colCoins.Add(colCoin)
 
@@ -187,7 +144,7 @@ func (k Keeper) ConvertUSCToCollaterals(ctx sdk.Context, uscCoin sdk.Coin) (sdk.
 		}
 	}
 	if !uscLeft.IsZero() {
-		return nil, sdkErrors.Wrapf(types.ErrInternal, "usc amount (%s) can not be filled up with the pool supply (%s)", uscCoin, poolCoins)
+		return nil, sdkErrors.Wrapf(types.ErrInternal, "USC token (%s) can not be filled up with the pool supply (%s)", uscCoin, poolCoins)
 	}
 
 	return colCoins, nil

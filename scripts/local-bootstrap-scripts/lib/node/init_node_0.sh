@@ -107,19 +107,13 @@ echo "Change other genesis settings"
       mv "${node_dir}/config/tmp.json" "${node_dir}/config/genesis.json"
     echo
 
-    echo "  Adding x/bank metadata for [usc, usdt, usdc, busd]"
-      usc_meta='{ "base": "ausc", "denom_units": [ { "aliases": [ "attousc" ], "denom": "ausc", "exponent": 0 }, { "aliases": [], "denom": "usc", "exponent": 18 } ], "name": "USC token", "symbol": "USC", "display": "usc" }'
-      usdt_meta='{ "base": "uusdt", "denom_units": [ { "aliases": [ "microusdt" ], "denom": "uusdt", "exponent": 0 }, { "aliases": [], "denom": "usdt", "exponent": 6 } ], "name": "USDT token", "symbol": "USDT", "display": "usdt" }'
-      usdc_meta='{ "base": "uusdc", "denom_units": [ { "aliases": [ "microusdc" ], "denom": "uusdc", "exponent": 0 }, { "aliases": [], "denom": "usdc", "exponent": 6 } ], "name": "USDC token", "symbol": "USDC", "display": "usdc" }'
-      busd_meta='{ "base": "abusd", "denom_units": [ { "aliases": [ "attobusd" ], "denom": "abusd", "exponent": 0 }, { "aliases": [], "denom": "busd", "exponent": 18 } ], "name": "BUSD token", "symbol": "BUSD", "display": "busd" }'
+    echo "  Adding x/usc metadata for supported collaterals [usdt, usdc, busd]"
+      usdt_meta='{ "denom": "uusdt", "decimals": 6, "description": "USDT native token (micro USDT)" }'
+      usdc_meta='{ "denom": "uusdc", "decimals": 6, "description": "USDC native token (micro USDC)" }'
+      busd_meta='{ "denom": "abusd", "decimals": 18, "description": "BUSD native token (atto BUSD)" }'
 
-      jq --argjson usc "${usc_meta}" --argjson usdt "${usdt_meta}" --argjson usdc "${usdc_meta}" --argjson busd "${busd_meta}" '.app_state.bank.denom_metadata += [ $usc, $usdt, $usdc, $busd ]' "${node_dir}/config/genesis.json" > "${node_dir}/config/tmp.json"
+      jq --argjson usdt "${usdt_meta}" --argjson usdc "${usdc_meta}" --argjson busd "${busd_meta}" '.app_state.usc.params.collateral_metas += [ $usdt, $usdc, $busd ]' "${node_dir}/config/genesis.json" > "${node_dir}/config/tmp.json"
       mv "${node_dir}/config/tmp.json" "${node_dir}/config/genesis.json"
-    echo
-
-    echo "  Adding x/usc supported collateral denoms"
-      jq '.app_state.usc.params.collateral_denoms = [ "busd", "usdt", "usdc" ]' "${node_dir}/config/genesis.json" > "${node_dir}/config/tmp.json"
-            mv "${node_dir}/config/tmp.json" "${node_dir}/config/genesis.json"
     echo
 
     echo "  Changing USC redeem period to 15s"

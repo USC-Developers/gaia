@@ -25,9 +25,9 @@ func GetGenesisStateFromAppState(cdc codec.JSONCodec, appState map[string]json.R
 	return &genesisState
 }
 
-// ValidateBasic perform a basic GenesisState validation.
-func (s GenesisState) ValidateBasic() error {
-	if err := s.Params.ValidateBasic(); err != nil {
+// Validate perform a GenesisState object validation.
+func (s GenesisState) Validate() error {
+	if err := s.Params.Validate(); err != nil {
 		return fmt.Errorf("params: %w", err)
 	}
 

@@ -17,9 +17,20 @@ import (
 
 var (
 	MockTimestamp = time.Date(2022, 1, 1, 0, 0, 0, 0, time.UTC)
-	GenBUSDCoin   = sdk.NewCoin("busd", sdk.NewInt(100))
-	GenUSDTCoin   = sdk.NewCoin("usdt", sdk.NewInt(100))
-	GenUSDCCoin   = sdk.NewCoin("usdc", sdk.NewInt(100))
+
+	BUSDMeta = types.TokenMeta{Denom: "abusd", Decimals: 18}
+	USDTMeta = types.TokenMeta{Denom: "uusdt", Decimals: 6}
+	USDCMeta = types.TokenMeta{Denom: "musdc", Decimals: 3}
+
+	GenBUSDAmt, _ = sdk.NewIntFromString("100")
+	GenUSDTAmt, _ = sdk.NewIntFromString("100")
+	GenUSDCAmt, _ = sdk.NewIntFromString("100")
+
+	GenCoins = sdk.NewCoins(
+		sdk.NewCoin("abusd", GenBUSDAmt),
+		sdk.NewCoin("uusdt", GenUSDTAmt),
+		sdk.NewCoin("musdc", GenUSDCAmt),
+	)
 )
 
 type TestSuite struct {
@@ -40,13 +51,17 @@ func (s *TestSuite) SetupTest() {
 	app := helpers.Setup(s.T(), false, 1)
 	ctx := app.BaseApp.NewContext(false, tmProto.Header{Time: MockTimestamp})
 
+	uscParams := app.USCKeeper.GetParams(ctx)
+	uscParams.CollateralMetas = []types.TokenMeta{BUSDMeta, USDTMeta, USDCMeta}
+	app.USCKeeper.SetParams(ctx, uscParams)
+
 	queryHelper := baseapp.NewQueryServerTestHelper(ctx, app.InterfaceRegistry())
 	types.RegisterQueryServer(queryHelper, keeper.NewQueryServerImpl(app.USCKeeper))
 	queryClient := types.NewQueryClient(queryHelper)
 
 	msgServer := keeper.NewMsgServerImpl(app.USCKeeper)
 
-	genCoins := sdk.NewCoins(GenBUSDCoin, GenUSDTCoin, GenUSDCCoin)
+	genCoins := GenCoins
 	genAddrs := helpers.AddTestAddrs(app, ctx, 2, genCoins)
 
 	s.app, s.ctx, s.queryClient, s.msgServer, s.accAddrs = app, ctx, queryClient, msgServer, genAddrs

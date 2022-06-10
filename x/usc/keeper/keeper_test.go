@@ -59,9 +59,9 @@ func (s *TestSuite) TestConversion() {
 	accAddr := s.accAddrs[0]
 	for _, scenario := range ConversionCasesData {
 		s.T().Run(scenario.description, func(t *testing.T) {
-			GenBUSDCoin_ := sdk.NewCoin("busd", sdk.NewInt(scenario.busdAmount))
-			GenUSDTCoin_ := sdk.NewCoin("usdt", sdk.NewInt(scenario.usdtAmount))
-			GenUSDCCoin_ := sdk.NewCoin("usdc", sdk.NewInt(scenario.usdcAmount))
+			GenBUSDCoin_ := sdk.NewCoin("abusd", sdk.NewInt(scenario.busdAmount))
+			GenUSDTCoin_ := sdk.NewCoin("uusdt", sdk.NewInt(scenario.usdtAmount))
+			GenUSDCCoin_ := sdk.NewCoin("musdc", sdk.NewInt(scenario.usdcAmount))
 			collateralsExpected := sdk.NewCoins(GenBUSDCoin_, GenUSDTCoin_, GenUSDCCoin_)
 
 			usc, err := uscKeeper.ConvertCollateralsToUSC(ctx, collateralsExpected)
@@ -92,7 +92,7 @@ func (s *TestSuite) TestConversion() {
 				assert.Equal(collateralsExpected, collateralsResponse)
 
 				// Redeem after tests
-				msgRedeem := types.NewMsgRedeemCollateral(accAddr, sdk.NewCoin("usc", sdk.NewInt(usc.Amount.Int64())))
+				msgRedeem := types.NewMsgRedeemCollateral(accAddr, sdk.NewCoin("ausc", sdk.NewInt(usc.Amount.Int64())))
 				// Send Msg
 				resRedeem, errRedeem := s.msgServer.RedeemCollateral(sdk.WrapSDKContext(s.ctx), msgRedeem)
 				require.Nil(errRedeem)

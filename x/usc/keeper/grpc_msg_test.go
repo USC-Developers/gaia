@@ -9,21 +9,21 @@ import (
 
 var (
 	validCoinsToSwap = []sdk.Coin{
-		sdk.NewCoin("busd", sdk.NewInt(10)),
-		sdk.NewCoin("usdc", sdk.NewInt(10)),
-		sdk.NewCoin("usdt", sdk.NewInt(10)),
+		sdk.NewCoin("abusd", sdk.NewInt(10)),
+		sdk.NewCoin("musdc", sdk.NewInt(10)),
+		sdk.NewCoin("uusdt", sdk.NewInt(10)),
 	}
 
 	zeroCoinsToSwap = []sdk.Coin{
-		sdk.NewCoin("busd", sdk.NewInt(0)),
-		sdk.NewCoin("usdc", sdk.NewInt(0)),
-		sdk.NewCoin("usdt", sdk.NewInt(0)),
+		sdk.NewCoin("abusd", sdk.NewInt(0)),
+		sdk.NewCoin("musdc", sdk.NewInt(0)),
+		sdk.NewCoin("uusdt", sdk.NewInt(0)),
 	}
 
 	outOfBalanceCoinsToSwap = []sdk.Coin{
-		sdk.NewCoin("busd", sdk.NewInt(1000)),
-		sdk.NewCoin("usdc", sdk.NewInt(1000)),
-		sdk.NewCoin("usdt", sdk.NewInt(1000)),
+		sdk.NewCoin("abusd", sdk.NewInt(1000)),
+		sdk.NewCoin("musdc", sdk.NewInt(1000)),
+		sdk.NewCoin("uusdt", sdk.NewInt(1000)),
 	}
 
 	inValidCoinsToSwap = []sdk.Coin{
@@ -32,65 +32,65 @@ var (
 		sdk.NewCoin("Invalid3", sdk.NewInt(10)),
 	}
 
-	uscCoin             = sdk.NewCoin("usc", sdk.NewInt(20000000000010))
-	outOfBalanceUscCoin = sdk.NewCoin("usc", sdk.NewInt(20000000000011))
+	validUscCoinAmount  = sdk.NewCoin("ausc", sdk.NewInt(10010000000000010))
+	outOfBalanceUscCoin = sdk.NewCoin("ausc", sdk.NewInt(10010000000000011))
 	randomCoin          = sdk.NewCoin("Random", sdk.NewInt(10))
 
 	beforeMintBalances = []balanceCase{
-		{description: "case for zero value of usc",
+		{description: "case for zero value of ausc",
 			input: 0,
-			denom: "usc",
+			denom: "ausc",
 		}, {
-			description: "case for 100 initial value of busd",
+			description: "case for 100 initial value of abusd",
 			input:       100,
-			denom:       "busd",
+			denom:       "abusd",
 		},
-		{description: "case for 100 initial value of usdc",
+		{description: "case for 100 initial value of musdc",
 			input: 100,
-			denom: "usdc",
+			denom: "musdc",
 		},
-		{description: "case for 100 initial value of usdt",
+		{description: "case for 100 initial value of uusdt",
 			input: 100,
-			denom: "usdt",
+			denom: "uusdt",
 		},
 	}
 
 	afterMintBalances = []balanceCase{
 		{description: "case for equal value of usc after mint",
-			input: 20000000000010,
-			denom: "usc",
+			input: 10010000000000010,
+			denom: "ausc",
 		}, {
 			description: "case for value of busd after mint",
 			input:       90,
-			denom:       "busd",
+			denom:       "abusd",
 		},
 		{description: "case for value of usdc after mint",
 			input: 90,
-			denom: "usdc",
+			denom: "musdc",
 		},
 		{description: "case for value of usdt after mint",
 			input: 90,
-			denom: "usdt",
+			denom: "uusdt",
 		},
 	}
 
 	afterRedeemRequestBalances = []balanceCase{
 		{description: "case for 0 usc after redeem request",
 			input: 0,
-			denom: "usc",
+			denom: "ausc",
 		},
 		{
 			description: "case for value of busd after redeem request",
 			input:       90,
-			denom:       "busd",
+			denom:       "abusd",
 		},
 		{description: "case for value of usdc after redeem request",
 			input: 90,
-			denom: "usdc",
+			denom: "musdc",
 		},
 		{description: "case for value of usdt after redeem request",
 			input: 90,
-			denom: "usdt",
+			denom: "uusdt",
 		},
 	}
 
@@ -124,7 +124,7 @@ var (
 
 		{
 			description:   "case for valid redeem message",
-			coin:          uscCoin,
+			coin:          validUscCoinAmount,
 			expectedError: false,
 		},
 
@@ -180,7 +180,7 @@ func (s *TestSuite) TestMessages() {
 	// Check account balance before minting
 	for _, scenario := range beforeMintBalances {
 		s.T().Run(scenario.description, func(t *testing.T) {
-			assert.EqualValues(scenario.input, bankKeeper.GetBalance(s.ctx, accAddr, scenario.denom).Amount.Int64())
+			assert.EqualValues(scenario.input, bankKeeper.GetBalance(s.ctx, accAddr, scenario.denom).Amount.Uint64())
 		})
 	}
 
@@ -196,9 +196,11 @@ func (s *TestSuite) TestMessages() {
 			} else {
 				require.NoError(errMint)
 				require.NotNil(resMint)
-				assert.Equal("20000000000010usc", resMint.MintedAmount.String())
+
+				assert.Equal(validUscCoinAmount.String(), resMint.MintedAmount.String())
 				// Check pools
-				assert.Equal("10busd,10usdc,10usdt", uscKeeper.ActivePool(s.ctx).String())
+				var activePool []sdk.Coin = uscKeeper.ActivePool(s.ctx)
+				assert.Equal(scenario.coins, activePool)
 				assert.True(uscKeeper.RedeemingPool(s.ctx).IsZero())
 			}
 		})
@@ -235,7 +237,8 @@ func (s *TestSuite) TestMessages() {
 
 				assert.Equal(validCoinsToSwap, resRedeem.RedeemedAmount)
 				assert.True(uscKeeper.ActivePool(s.ctx).IsZero())
-				assert.Equal("10busd,10usdc,10usdt", uscKeeper.RedeemingPool(s.ctx).String())
+				var redeemingPool []sdk.Coin = uscKeeper.RedeemingPool(s.ctx)
+				assert.Equal(validCoinsToSwap, redeemingPool)
 
 				s.verifyPool()
 				s.verifyUSCSupplyInvariant()

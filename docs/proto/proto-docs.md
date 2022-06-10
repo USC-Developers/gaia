@@ -8,6 +8,7 @@
     - [Params](#gaia.usc.v1beta1.Params)
     - [RedeemEntries](#gaia.usc.v1beta1.RedeemEntries)
     - [RedeemEntry](#gaia.usc.v1beta1.RedeemEntry)
+    - [TokenMeta](#gaia.usc.v1beta1.TokenMeta)
   
 - [gaia/usc/v1beta1/genesis.proto](#gaia/usc/v1beta1/genesis.proto)
     - [GenesisState](#gaia.usc.v1beta1.GenesisState)
@@ -48,8 +49,8 @@ Params defines the parameters for the x/usc module.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | `redeem_dur` | [google.protobuf.Duration](#google.protobuf.Duration) |  | redeem_dur defines USC -> collateral redeem duration (how long does it takes to convert). |
-| `collateral_denoms` | [string](#string) | repeated | collateral_denoms defines a set of collateral coin denoms that are supported by the module. |
-| `usc_denom` | [string](#string) |  | usc_denom defines the USC coin denom. |
+| `collateral_metas` | [TokenMeta](#gaia.usc.v1beta1.TokenMeta) | repeated | collateral_metas defines a set of collateral token metas that are supported by the module. |
+| `usc_meta` | [TokenMeta](#gaia.usc.v1beta1.TokenMeta) |  | usc_meta defines the USC token meta. USC token must has a higher precision (number of decimals) than other collaterals. |
 
 
 
@@ -81,6 +82,23 @@ RedeemEntry defines the redeeming queue entry.
 | ----- | ---- | ----- | ----------- |
 | `address` | [string](#string) |  |  |
 | `collateral_amount` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) | repeated |  |
+
+
+
+
+
+
+<a name="gaia.usc.v1beta1.TokenMeta"></a>
+
+### TokenMeta
+TokenMeta defines USC / collateral token metadata.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `denom` | [string](#string) |  | denom is the sdk.Coin denomination (ibc / native tokens). |
+| `decimals` | [uint32](#uint32) |  | decimals is a number of decimals for the sdk.Coin amount value. Example: coin amount of 1.0usdt with 3 decimals -> 1000. |
+| `description` | [string](#string) |  | description is an optional token description (IBC source info for example). |
 
 
 

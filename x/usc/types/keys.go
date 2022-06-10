@@ -43,7 +43,7 @@ func GetRedeemingQueueKey(timestamp time.Time) []byte {
 // ParseRedeemingQueueKey parses timeSlice storage key.
 func ParseRedeemingQueueKey(key []byte) time.Time {
 	if len(key) == 0 {
-		panic(fmt.Errorf("parsing timeSlice key (%v): empty key"))
+		panic(fmt.Errorf("parsing timeSlice key (%v): empty key", key))
 	}
 
 	prefix, bz := key[:1], key[1:]

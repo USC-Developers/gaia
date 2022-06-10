@@ -32,10 +32,11 @@ const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 type Params struct {
 	// redeem_dur defines USC -> collateral redeem duration (how long does it takes to convert).
 	RedeemDur time.Duration `protobuf:"bytes,1,opt,name=redeem_dur,json=redeemDur,proto3,stdduration" json:"redeem_dur" yaml:"redeem_dur"`
-	// collateral_denoms defines a set of collateral coin denoms that are supported by the module.
-	CollateralDenoms []string `protobuf:"bytes,2,rep,name=collateral_denoms,json=collateralDenoms,proto3" json:"collateral_denoms,omitempty" yaml:"collateral_denoms"`
-	// usc_denom defines the USC coin denom.
-	UscDenom string `protobuf:"bytes,3,opt,name=usc_denom,json=uscDenom,proto3" json:"usc_denom,omitempty" yaml:"usc_denom"`
+	// collateral_metas defines a set of collateral token metas that are supported by the module.
+	CollateralMetas []TokenMeta `protobuf:"bytes,2,rep,name=collateral_metas,json=collateralMetas,proto3" json:"collateral_metas" yaml:"collateral_metas"`
+	// usc_meta defines the USC token meta.
+	// USC token must has a higher precision (number of decimals) than other collaterals.
+	UscMeta TokenMeta `protobuf:"bytes,3,opt,name=usc_meta,json=uscMeta,proto3" json:"usc_meta" yaml:"usc_meta"`
 }
 
 func (m *Params) Reset()      { *m = Params{} }
@@ -70,6 +71,49 @@ func (m *Params) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_Params proto.InternalMessageInfo
 
+// TokenMeta defines USC / collateral token metadata.
+type TokenMeta struct {
+	// denom is the sdk.Coin denomination (ibc / native tokens).
+	Denom string `protobuf:"bytes,1,opt,name=denom,proto3" json:"denom,omitempty" yaml:"denom"`
+	// decimals is a number of decimals for the sdk.Coin amount value.
+	// Example: coin amount of 1.0usdt with 3 decimals -> 1000.
+	Decimals uint32 `protobuf:"varint,2,opt,name=decimals,proto3" json:"decimals,omitempty" yaml:"decimals"`
+	// description is an optional token description (IBC source info for example).
+	Description string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty" yaml:"description"`
+}
+
+func (m *TokenMeta) Reset()      { *m = TokenMeta{} }
+func (*TokenMeta) ProtoMessage() {}
+func (*TokenMeta) Descriptor() ([]byte, []int) {
+	return fileDescriptor_8575b09df2fdc43e, []int{1}
+}
+func (m *TokenMeta) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *TokenMeta) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_TokenMeta.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *TokenMeta) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_TokenMeta.Merge(m, src)
+}
+func (m *TokenMeta) XXX_Size() int {
+	return m.Size()
+}
+func (m *TokenMeta) XXX_DiscardUnknown() {
+	xxx_messageInfo_TokenMeta.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_TokenMeta proto.InternalMessageInfo
+
 // RedeemEntry defines the redeeming queue entry.
 type RedeemEntry struct {
 	Address          string       `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
@@ -80,7 +124,7 @@ func (m *RedeemEntry) Reset()         { *m = RedeemEntry{} }
 func (m *RedeemEntry) String() string { return proto.CompactTextString(m) }
 func (*RedeemEntry) ProtoMessage()    {}
 func (*RedeemEntry) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8575b09df2fdc43e, []int{1}
+	return fileDescriptor_8575b09df2fdc43e, []int{2}
 }
 func (m *RedeemEntry) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -117,7 +161,7 @@ func (m *RedeemEntries) Reset()         { *m = RedeemEntries{} }
 func (m *RedeemEntries) String() string { return proto.CompactTextString(m) }
 func (*RedeemEntries) ProtoMessage()    {}
 func (*RedeemEntries) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8575b09df2fdc43e, []int{2}
+	return fileDescriptor_8575b09df2fdc43e, []int{3}
 }
 func (m *RedeemEntries) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -148,6 +192,7 @@ var xxx_messageInfo_RedeemEntries proto.InternalMessageInfo
 
 func init() {
 	proto.RegisterType((*Params)(nil), "gaia.usc.v1beta1.Params")
+	proto.RegisterType((*TokenMeta)(nil), "gaia.usc.v1beta1.TokenMeta")
 	proto.RegisterType((*RedeemEntry)(nil), "gaia.usc.v1beta1.RedeemEntry")
 	proto.RegisterType((*RedeemEntries)(nil), "gaia.usc.v1beta1.RedeemEntries")
 }
@@ -155,35 +200,41 @@ func init() {
 func init() { proto.RegisterFile("gaia/usc/v1beta1/usc.proto", fileDescriptor_8575b09df2fdc43e) }
 
 var fileDescriptor_8575b09df2fdc43e = []byte{
-	// 441 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x64, 0x52, 0x3d, 0x6f, 0xd4, 0x40,
-	0x10, 0xf5, 0x12, 0x94, 0xc4, 0x1b, 0x21, 0x5d, 0xac, 0x14, 0xe6, 0xa4, 0xd8, 0x27, 0x57, 0x27,
-	0x24, 0x76, 0x75, 0xd0, 0x45, 0xa2, 0xc0, 0x39, 0x24, 0x0a, 0x90, 0x90, 0x11, 0x02, 0xd1, 0x44,
-	0x6b, 0x7b, 0x31, 0x96, 0x6c, 0xcf, 0x69, 0x3f, 0x22, 0xae, 0xe2, 0x2f, 0x50, 0xa6, 0xcc, 0xcf,
-	0xb9, 0x32, 0x25, 0xd5, 0x01, 0x77, 0x0d, 0x0d, 0x4d, 0x7e, 0x01, 0xf2, 0xae, 0x1d, 0x07, 0xd2,
-	0xcd, 0xcc, 0x9b, 0xf7, 0xf6, 0xed, 0xcc, 0xe0, 0x71, 0xc1, 0x4a, 0x46, 0xb5, 0xcc, 0xe8, 0xf9,
-	0x2c, 0xe5, 0x8a, 0xcd, 0xda, 0x98, 0x2c, 0x04, 0x28, 0xf0, 0x46, 0x2d, 0x46, 0xda, 0xbc, 0xc3,
-	0xc6, 0x47, 0x05, 0x14, 0x60, 0x40, 0xda, 0x46, 0xb6, 0x6f, 0x1c, 0x14, 0x00, 0x45, 0xc5, 0xa9,
-	0xc9, 0x52, 0xfd, 0x89, 0xe6, 0x5a, 0x30, 0x55, 0x42, 0xd3, 0xe3, 0x19, 0xc8, 0x1a, 0x24, 0x4d,
-	0x99, 0xe4, 0x37, 0xcf, 0x64, 0x50, 0x76, 0x78, 0xf4, 0x07, 0xe1, 0xdd, 0x37, 0x4c, 0xb0, 0x5a,
-	0x7a, 0xef, 0x31, 0x16, 0x3c, 0xe7, 0xbc, 0x3e, 0xcb, 0xb5, 0xf0, 0xd1, 0x04, 0x4d, 0x0f, 0x9e,
-	0x3c, 0x24, 0x56, 0x9f, 0xf4, 0xfa, 0x64, 0xde, 0xe9, 0xc7, 0xc7, 0xab, 0x75, 0xe8, 0x5c, 0xaf,
-	0xc3, 0xc3, 0x25, 0xab, 0xab, 0x93, 0x68, 0xa0, 0x46, 0x17, 0x3f, 0x42, 0x94, 0xb8, 0xb6, 0x30,
-	0xd7, 0xc2, 0x7b, 0x8d, 0x0f, 0x33, 0xa8, 0x2a, 0xa6, 0xb8, 0x60, 0xd5, 0x59, 0xce, 0x1b, 0xa8,
-	0xa5, 0x7f, 0x6f, 0xb2, 0x33, 0x75, 0xe3, 0x49, 0x27, 0xe2, 0x5b, 0x91, 0x3b, 0x6d, 0x51, 0x32,
-	0x1a, 0x6a, 0x73, 0x53, 0xf2, 0x66, 0xd8, 0xd5, 0x32, 0xb3, 0x0d, 0xfe, 0xce, 0x04, 0x4d, 0xdd,
-	0xf8, 0xe8, 0x7a, 0x1d, 0x8e, 0xac, 0xc4, 0x0d, 0x14, 0x25, 0xfb, 0x5a, 0x66, 0x86, 0x73, 0xb2,
-	0x7f, 0x71, 0x19, 0x3a, 0xbf, 0x2f, 0x43, 0x14, 0x7d, 0xc5, 0x07, 0x89, 0x31, 0xf6, 0xa2, 0x51,
-	0x62, 0xe9, 0xf9, 0x78, 0x8f, 0xe5, 0xb9, 0xe0, 0x52, 0x9a, 0x0f, 0xbb, 0x49, 0x9f, 0x7a, 0xaf,
-	0xfe, 0x31, 0xcd, 0x6a, 0xd0, 0x8d, 0x32, 0xa6, 0xdb, 0xa1, 0xd8, 0xa1, 0x92, 0x76, 0xa8, 0xfd,
-	0x7e, 0xc8, 0x29, 0x94, 0x4d, 0x7c, 0xbf, 0xfd, 0xcf, 0x6d, 0xcf, 0xcf, 0x0d, 0xd1, 0x18, 0x40,
-	0xc6, 0xc0, 0x07, 0xfc, 0x60, 0x30, 0x50, 0x72, 0xe9, 0x3d, 0xc3, 0x7b, 0xdc, 0x86, 0x3e, 0x32,
-	0xf2, 0xc7, 0xe4, 0xff, 0xdd, 0x93, 0x5b, 0x96, 0xbb, 0x27, 0x7a, 0xce, 0xa0, 0x1c, 0xbf, 0x5c,
-	0xfd, 0x0a, 0x9c, 0xd5, 0x26, 0x40, 0x57, 0x9b, 0x00, 0xfd, 0xdc, 0x04, 0xe8, 0xdb, 0x36, 0x70,
-	0xae, 0xb6, 0x81, 0xf3, 0x7d, 0x1b, 0x38, 0x1f, 0x1f, 0x15, 0xa5, 0xfa, 0xac, 0x53, 0x92, 0x41,
-	0x4d, 0xdf, 0xbd, 0x3d, 0x7d, 0x3c, 0xe7, 0xe7, 0xbc, 0x82, 0x05, 0x17, 0x92, 0x9a, 0x33, 0xfc,
-	0x62, 0x0e, 0x51, 0x2d, 0x17, 0x5c, 0xa6, 0xbb, 0x66, 0xdb, 0x4f, 0xff, 0x06, 0x00, 0x00, 0xff,
-	0xff, 0x96, 0xe5, 0x82, 0x5e, 0xa1, 0x02, 0x00, 0x00,
+	// 534 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x53, 0x4f, 0x6f, 0xd3, 0x30,
+	0x14, 0x8f, 0x37, 0xd8, 0x5a, 0x97, 0x69, 0x9d, 0x41, 0xac, 0x2b, 0x5a, 0x32, 0xe5, 0x80, 0x2a,
+	0x24, 0x12, 0x6d, 0x5c, 0xd0, 0x24, 0x0e, 0x64, 0x45, 0xe2, 0x00, 0x02, 0x05, 0x10, 0x88, 0xcb,
+	0xe4, 0x26, 0x8f, 0x10, 0x91, 0xc4, 0x95, 0xed, 0x4c, 0xf4, 0xc4, 0x57, 0xe0, 0xb8, 0xe3, 0x2e,
+	0x48, 0x7c, 0x94, 0x1e, 0x77, 0xe4, 0x54, 0xa0, 0xbd, 0x70, 0xee, 0x27, 0x40, 0xb6, 0x93, 0xb6,
+	0x1a, 0x12, 0x37, 0xdb, 0xbf, 0xf7, 0xfb, 0xe3, 0xe7, 0x67, 0xdc, 0x4d, 0x68, 0x4a, 0xfd, 0x52,
+	0x44, 0xfe, 0xd9, 0xe1, 0x00, 0x24, 0x3d, 0x54, 0x6b, 0x6f, 0xc8, 0x99, 0x64, 0xa4, 0xad, 0x30,
+	0x4f, 0xed, 0x2b, 0xac, 0x7b, 0x2b, 0x61, 0x09, 0xd3, 0xa0, 0xaf, 0x56, 0xa6, 0xae, 0x6b, 0x27,
+	0x8c, 0x25, 0x19, 0xf8, 0x7a, 0x37, 0x28, 0x3f, 0xf8, 0x71, 0xc9, 0xa9, 0x4c, 0x59, 0x51, 0xe3,
+	0x11, 0x13, 0x39, 0x13, 0xfe, 0x80, 0x0a, 0x58, 0xd8, 0x44, 0x2c, 0xad, 0x70, 0xf7, 0xdb, 0x1a,
+	0xde, 0x78, 0x49, 0x39, 0xcd, 0x05, 0x79, 0x8b, 0x31, 0x87, 0x18, 0x20, 0x3f, 0x8d, 0x4b, 0xde,
+	0x41, 0x07, 0xa8, 0xd7, 0x3a, 0xda, 0xf3, 0x8c, 0xbe, 0x57, 0xeb, 0x7b, 0xfd, 0x4a, 0x3f, 0xd8,
+	0x1f, 0x4f, 0x1c, 0x6b, 0x3e, 0x71, 0x76, 0x46, 0x34, 0xcf, 0x8e, 0xdd, 0x25, 0xd5, 0x3d, 0xff,
+	0xe9, 0xa0, 0xb0, 0x69, 0x0e, 0xfa, 0x25, 0x27, 0x09, 0x6e, 0x47, 0x2c, 0xcb, 0xa8, 0x04, 0x4e,
+	0xb3, 0xd3, 0x1c, 0x24, 0x15, 0x9d, 0xb5, 0x83, 0xf5, 0x5e, 0xeb, 0xe8, 0x8e, 0x77, 0xf5, 0x9a,
+	0xde, 0x6b, 0xf6, 0x09, 0x8a, 0xe7, 0x20, 0x69, 0xe0, 0x54, 0x06, 0xbb, 0xc6, 0xe0, 0xaa, 0x84,
+	0x1b, 0x6e, 0x2f, 0x8f, 0x14, 0x41, 0x90, 0x17, 0xb8, 0x51, 0x8a, 0x48, 0xc3, 0x9d, 0x75, 0x9d,
+	0xff, 0xbf, 0x06, 0xbb, 0x95, 0xc1, 0xb6, 0x31, 0xa8, 0xa9, 0x6e, 0xb8, 0x59, 0x8a, 0x48, 0x55,
+	0x1c, 0x37, 0xce, 0x2f, 0x1c, 0xeb, 0xcf, 0x85, 0x83, 0xdc, 0xef, 0x08, 0x37, 0x17, 0x4c, 0x72,
+	0x17, 0x5f, 0x8f, 0xa1, 0x60, 0xb9, 0xee, 0x52, 0x33, 0x68, 0xcf, 0x27, 0xce, 0x0d, 0x23, 0xa2,
+	0x8f, 0xdd, 0xd0, 0xc0, 0xc4, 0xc7, 0x8d, 0x18, 0xa2, 0x34, 0xa7, 0x99, 0xba, 0x31, 0xea, 0x6d,
+	0x05, 0x37, 0x97, 0x7e, 0x35, 0xe2, 0x86, 0x8b, 0x22, 0xf2, 0x10, 0xb7, 0x62, 0x10, 0x11, 0x4f,
+	0x87, 0xaa, 0xc7, 0xfa, 0x12, 0xcd, 0xe0, 0xf6, 0x7c, 0xe2, 0x90, 0x9a, 0xb3, 0x00, 0xdd, 0x70,
+	0xb5, 0x74, 0x25, 0xea, 0x17, 0xdc, 0x0a, 0x75, 0xef, 0x9f, 0x14, 0x92, 0x8f, 0x48, 0x07, 0x6f,
+	0xd2, 0x38, 0xe6, 0x20, 0x84, 0x49, 0x1b, 0xd6, 0x5b, 0xf2, 0x0c, 0xef, 0xac, 0x34, 0x95, 0xe6,
+	0xac, 0x2c, 0x64, 0xf5, 0x30, 0x7b, 0x9e, 0x99, 0x1b, 0x4f, 0xcd, 0xcd, 0xa2, 0x75, 0x27, 0x2c,
+	0x2d, 0x82, 0x6b, 0xaa, 0x6b, 0xe1, 0xca, 0x8b, 0x3e, 0xd6, 0x44, 0x1d, 0x00, 0xe9, 0x00, 0xef,
+	0xf0, 0xd6, 0x32, 0x40, 0x0a, 0x82, 0x3c, 0xc2, 0x9b, 0x60, 0x96, 0x1d, 0xa4, 0xe5, 0xf7, 0xff,
+	0x7d, 0x96, 0x95, 0xc8, 0x95, 0x45, 0xcd, 0x59, 0x2a, 0x07, 0x4f, 0xc7, 0xbf, 0x6d, 0x6b, 0x3c,
+	0xb5, 0xd1, 0xe5, 0xd4, 0x46, 0xbf, 0xa6, 0x36, 0xfa, 0x3a, 0xb3, 0xad, 0xcb, 0x99, 0x6d, 0xfd,
+	0x98, 0xd9, 0xd6, 0xfb, 0x7b, 0x49, 0x2a, 0x3f, 0x96, 0x03, 0x2f, 0x62, 0xb9, 0xff, 0xe6, 0xd5,
+	0xc9, 0xfd, 0x3e, 0x9c, 0x41, 0xc6, 0x86, 0xc0, 0x85, 0xaf, 0x7f, 0xda, 0x67, 0xfd, 0xd7, 0xe4,
+	0x68, 0x08, 0x62, 0xb0, 0xa1, 0x07, 0xfa, 0xc1, 0xdf, 0x00, 0x00, 0x00, 0xff, 0xff, 0x59, 0x61,
+	0x69, 0xee, 0x84, 0x03, 0x00, 0x00,
 }
 
 func (this *Params) Equal(that interface{}) bool {
@@ -208,15 +259,45 @@ func (this *Params) Equal(that interface{}) bool {
 	if this.RedeemDur != that1.RedeemDur {
 		return false
 	}
-	if len(this.CollateralDenoms) != len(that1.CollateralDenoms) {
+	if len(this.CollateralMetas) != len(that1.CollateralMetas) {
 		return false
 	}
-	for i := range this.CollateralDenoms {
-		if this.CollateralDenoms[i] != that1.CollateralDenoms[i] {
+	for i := range this.CollateralMetas {
+		if !this.CollateralMetas[i].Equal(&that1.CollateralMetas[i]) {
 			return false
 		}
 	}
-	if this.UscDenom != that1.UscDenom {
+	if !this.UscMeta.Equal(&that1.UscMeta) {
+		return false
+	}
+	return true
+}
+func (this *TokenMeta) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*TokenMeta)
+	if !ok {
+		that2, ok := that.(TokenMeta)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.Denom != that1.Denom {
+		return false
+	}
+	if this.Decimals != that1.Decimals {
+		return false
+	}
+	if this.Description != that1.Description {
 		return false
 	}
 	return true
@@ -302,30 +383,80 @@ func (m *Params) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.UscDenom) > 0 {
-		i -= len(m.UscDenom)
-		copy(dAtA[i:], m.UscDenom)
-		i = encodeVarintUsc(dAtA, i, uint64(len(m.UscDenom)))
-		i--
-		dAtA[i] = 0x1a
+	{
+		size, err := m.UscMeta.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = encodeVarintUsc(dAtA, i, uint64(size))
 	}
-	if len(m.CollateralDenoms) > 0 {
-		for iNdEx := len(m.CollateralDenoms) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.CollateralDenoms[iNdEx])
-			copy(dAtA[i:], m.CollateralDenoms[iNdEx])
-			i = encodeVarintUsc(dAtA, i, uint64(len(m.CollateralDenoms[iNdEx])))
+	i--
+	dAtA[i] = 0x1a
+	if len(m.CollateralMetas) > 0 {
+		for iNdEx := len(m.CollateralMetas) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.CollateralMetas[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintUsc(dAtA, i, uint64(size))
+			}
 			i--
 			dAtA[i] = 0x12
 		}
 	}
-	n1, err1 := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.RedeemDur, dAtA[i-github_com_gogo_protobuf_types.SizeOfStdDuration(m.RedeemDur):])
-	if err1 != nil {
-		return 0, err1
+	n2, err2 := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.RedeemDur, dAtA[i-github_com_gogo_protobuf_types.SizeOfStdDuration(m.RedeemDur):])
+	if err2 != nil {
+		return 0, err2
 	}
-	i -= n1
-	i = encodeVarintUsc(dAtA, i, uint64(n1))
+	i -= n2
+	i = encodeVarintUsc(dAtA, i, uint64(n2))
 	i--
 	dAtA[i] = 0xa
+	return len(dAtA) - i, nil
+}
+
+func (m *TokenMeta) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *TokenMeta) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *TokenMeta) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Description) > 0 {
+		i -= len(m.Description)
+		copy(dAtA[i:], m.Description)
+		i = encodeVarintUsc(dAtA, i, uint64(len(m.Description)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Decimals != 0 {
+		i = encodeVarintUsc(dAtA, i, uint64(m.Decimals))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Denom) > 0 {
+		i -= len(m.Denom)
+		copy(dAtA[i:], m.Denom)
+		i = encodeVarintUsc(dAtA, i, uint64(len(m.Denom)))
+		i--
+		dAtA[i] = 0xa
+	}
 	return len(dAtA) - i, nil
 }
 
@@ -429,13 +560,31 @@ func (m *Params) Size() (n int) {
 	_ = l
 	l = github_com_gogo_protobuf_types.SizeOfStdDuration(m.RedeemDur)
 	n += 1 + l + sovUsc(uint64(l))
-	if len(m.CollateralDenoms) > 0 {
-		for _, s := range m.CollateralDenoms {
-			l = len(s)
+	if len(m.CollateralMetas) > 0 {
+		for _, e := range m.CollateralMetas {
+			l = e.Size()
 			n += 1 + l + sovUsc(uint64(l))
 		}
 	}
-	l = len(m.UscDenom)
+	l = m.UscMeta.Size()
+	n += 1 + l + sovUsc(uint64(l))
+	return n
+}
+
+func (m *TokenMeta) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Denom)
+	if l > 0 {
+		n += 1 + l + sovUsc(uint64(l))
+	}
+	if m.Decimals != 0 {
+		n += 1 + sovUsc(uint64(m.Decimals))
+	}
+	l = len(m.Description)
 	if l > 0 {
 		n += 1 + l + sovUsc(uint64(l))
 	}
@@ -546,9 +695,9 @@ func (m *Params) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CollateralDenoms", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field CollateralMetas", wireType)
 			}
-			var stringLen uint64
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowUsc
@@ -558,27 +707,112 @@ func (m *Params) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthUsc
 			}
-			postIndex := iNdEx + intStringLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthUsc
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.CollateralDenoms = append(m.CollateralDenoms, string(dAtA[iNdEx:postIndex]))
+			m.CollateralMetas = append(m.CollateralMetas, TokenMeta{})
+			if err := m.CollateralMetas[len(m.CollateralMetas)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field UscDenom", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field UscMeta", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowUsc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthUsc
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthUsc
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.UscMeta.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipUsc(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthUsc
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *TokenMeta) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowUsc
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: TokenMeta: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TokenMeta: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Denom", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -606,7 +840,58 @@ func (m *Params) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.UscDenom = string(dAtA[iNdEx:postIndex])
+			m.Denom = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Decimals", wireType)
+			}
+			m.Decimals = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowUsc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Decimals |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Description", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowUsc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthUsc
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthUsc
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Description = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
