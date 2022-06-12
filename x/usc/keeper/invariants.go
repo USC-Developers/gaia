@@ -10,13 +10,13 @@ import (
 
 // RegisterInvariants registers all module's invariants.
 func RegisterInvariants(ir sdk.InvariantRegistry, k Keeper) {
-	ir.RegisterRoute(types.ModuleName, "usc-supply",
-		RedeemingQueueInvariant(k))
 	ir.RegisterRoute(types.ModuleName, "redeeming-queue",
+		RedeemingQueueInvariant(k))
+	ir.RegisterRoute(types.ModuleName, "usc-supply",
 		USCSupplyInvariant(k))
 }
 
-// AllInvariants runs all invariants of the module.
+// AllInvariants runs all invariants of the module (used by tests).
 func AllInvariants(k Keeper) sdk.Invariant {
 	return func(ctx sdk.Context) (string, bool) {
 		res, stop := RedeemingQueueInvariant(k)(ctx)

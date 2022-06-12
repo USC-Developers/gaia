@@ -72,18 +72,21 @@ func (k msgServer) RedeemCollateral(goCtx context.Context, req *types.MsgRedeemC
 	}
 
 	// Convert USC coin to collateral coins
-	colCoins, err := k.ConvertUSCToCollaterals(ctx, req.UscAmount)
+	uscCoin, colCoins, err := k.ConvertUSCToCollaterals(ctx, req.UscAmount)
 	if err != nil {
 		return nil, err
 	}
+	if colCoins.IsZero() {
+		return nil, sdkErrors.Wrapf(types.ErrRedeemDeclined, "USC amount is too small or pool funds are insufficient")
+	}
 
 	// Transfer account's USC coin to the module's Redeeming pool
-	if err := k.bankKeeper.SendCoinsFromAccountToModule(ctx, accAddr, types.RedeemingPoolName, sdk.NewCoins(req.UscAmount)); err != nil {
+	if err := k.bankKeeper.SendCoinsFromAccountToModule(ctx, accAddr, types.RedeemingPoolName, sdk.NewCoins(uscCoin)); err != nil {
 		return nil, err
 	}
 
 	// Burn USC coin
-	if err := k.bankKeeper.BurnCoins(ctx, types.RedeemingPoolName, sdk.NewCoins(req.UscAmount)); err != nil {
+	if err := k.bankKeeper.BurnCoins(ctx, types.RedeemingPoolName, sdk.NewCoins(uscCoin)); err != nil {
 		return nil, sdkErrors.Wrapf(types.ErrInternal, "burning USC coin (%s): %v", req.UscAmount, err)
 	}
 
@@ -93,9 +96,11 @@ func (k msgServer) RedeemCollateral(goCtx context.Context, req *types.MsgRedeemC
 	}
 
 	// Enqueue redeem request
-	k.BeginRedeeming(ctx, accAddr, colCoins)
+	completionTime := k.BeginRedeeming(ctx, accAddr, colCoins)
 
 	return &types.MsgRedeemCollateralResponse{
+		BurnedAmount:   uscCoin,
 		RedeemedAmount: colCoins,
+		CompletionTime: completionTime,
 	}, nil
 }

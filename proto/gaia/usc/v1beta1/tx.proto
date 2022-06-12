@@ -6,6 +6,7 @@ option (gogoproto.equal_all) = false;
 option (gogoproto.goproto_getters_all) = false;
 
 import "gogoproto/gogo.proto";
+import "google/protobuf/timestamp.proto";
 import "cosmos/base/v1beta1/coin.proto";
 
 // Msg defines the x/usc Msg service.
@@ -22,6 +23,7 @@ message MsgMintUSC {
   string address = 1 [
     (gogoproto.moretags) = "yaml:\"address\""
   ];
+
   repeated cosmos.base.v1beta1.Coin collateral_amount = 2 [
     (gogoproto.moretags) = "yaml:\"collateral_amount\"",
     (gogoproto.nullable) = false
@@ -30,6 +32,7 @@ message MsgMintUSC {
 
 // MsgMintUSCResponse defines the Msg/MintUSC response type.
 message MsgMintUSCResponse {
+  // minted_amount defines a minted USC coin.
   cosmos.base.v1beta1.Coin minted_amount = 1 [
     (gogoproto.moretags) = "yaml:\"minted_amount\"",
     (gogoproto.nullable) = false
@@ -41,6 +44,7 @@ message MsgRedeemCollateral {
   string address = 1 [
     (gogoproto.moretags) = "yaml:\"address\""
   ];
+
   cosmos.base.v1beta1.Coin usc_amount = 2 [
     (gogoproto.moretags) = "yaml:\"amount\"",
     (gogoproto.nullable) = false
@@ -49,8 +53,22 @@ message MsgRedeemCollateral {
 
 // MsgMintUSCResponse defines the Msg/RedeemCollateral response type.
 message MsgRedeemCollateralResponse {
-  repeated cosmos.base.v1beta1.Coin redeemed_amount = 1 [
+  // burned_amount defines the USC token converted amount (might be LT the requested amount).
+  cosmos.base.v1beta1.Coin burned_amount = 1 [
+    (gogoproto.moretags) = "yaml:\"burned_amount\"",
+    (gogoproto.nullable) = false
+  ];
+
+  // redeemed_amount defines collateral tokens that are transferred to an account after the redeeming timout.
+  repeated cosmos.base.v1beta1.Coin redeemed_amount = 2 [
     (gogoproto.moretags) = "yaml:\"redeemed_amount\"",
     (gogoproto.nullable) = false
+  ];
+
+  // completion_time defines the redeeming period end time.
+  google.protobuf.Timestamp completion_time = 3 [
+    (gogoproto.moretags) = "yaml:\"completion_time\"",
+    (gogoproto.nullable) = false,
+    (gogoproto.stdtime) = true
   ];
 }

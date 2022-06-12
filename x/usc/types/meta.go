@@ -58,7 +58,7 @@ func (m TokenMeta) ConvertCoin(coin sdk.Coin, dstMeta TokenMeta) (sdk.Coin, erro
 // Function is a variation of sdk.NormalizeCoin.
 func (m TokenMeta) NormalizeCoin(coin sdk.Coin, dstMeta TokenMeta) (sdk.Coin, error) {
 	if dstMeta.Decimals < m.Decimals {
-		return sdk.Coin{}, fmt.Errorf("dstMeta.Decimals (%d) is LT srcMeta.Decimals (%s)", dstMeta.Decimals, m.Decimals)
+		return sdk.Coin{}, fmt.Errorf("dstMeta.Decimals (%d) is LT srcMeta.Decimals (%d)", dstMeta.Decimals, m.Decimals)
 	}
 
 	coinNormalized, err := m.ConvertCoin(coin, dstMeta)

@@ -79,18 +79,19 @@ func (k Keeper) ConvertCollateralsToUSC(ctx sdk.Context, colCoins sdk.Coins) (sd
 }
 
 // ConvertUSCToCollaterals converts USC coin to collateral coins in 1:1 relation iterating module's Active pool from the highest supply to the lowest.
-func (k Keeper) ConvertUSCToCollaterals(ctx sdk.Context, uscCoin sdk.Coin) (sdk.Coins, error) {
+// Returns converted USC (equals to input if there are no leftovers)  and collaterals coins.
+func (k Keeper) ConvertUSCToCollaterals(ctx sdk.Context, uscCoin sdk.Coin) (sdk.Coin, sdk.Coins, error) {
 	uscMeta, colMetas := k.USCMeta(ctx), k.CollateralMetasSet(ctx)
 
 	// Check source denom
 	if uscCoin.Denom != uscMeta.Denom {
-		return nil, sdkErrors.Wrapf(types.ErrInvalidUSC, "got (%s), expected (%s)", uscCoin.Denom, uscMeta.Denom)
+		return sdk.Coin{}, nil, sdkErrors.Wrapf(types.ErrInvalidUSC, "got (%s), expected (%s)", uscCoin.Denom, uscMeta.Denom)
 	}
 
 	// Sort active pool coins from the highest supply to the lowest normalizing amounts
 	poolCoins := k.ActivePool(ctx)
 
-	poolCoinsNormalized := make(sdk.Coins, len(poolCoins))
+	poolCoinsNormalized := make(sdk.Coins, 0, len(poolCoins))
 	for _, poolCoin := range poolCoins {
 		poolMeta, ok := colMetas[poolCoin.Denom]
 		if !ok {
@@ -100,7 +101,7 @@ func (k Keeper) ConvertUSCToCollaterals(ctx sdk.Context, uscCoin sdk.Coin) (sdk.
 
 		poolCoinNormalized, err := poolMeta.NormalizeCoin(poolCoin, uscMeta)
 		if err != nil {
-			return nil, sdkErrors.Wrapf(types.ErrInternal, "normalizing ActivePool coin (%s): %v", poolCoin, err)
+			return sdk.Coin{}, nil, sdkErrors.Wrapf(types.ErrInternal, "normalizing ActivePool coin (%s): %v", poolCoin, err)
 		}
 		poolCoinsNormalized = append(poolCoinsNormalized, poolCoinNormalized)
 	}
@@ -114,38 +115,43 @@ func (k Keeper) ConvertUSCToCollaterals(ctx sdk.Context, uscCoin sdk.Coin) (sdk.
 		return false
 	})
 
-	// Convert and add collateral coins
-	uscLeft, colCoins := uscCoin, sdk.NewCoins()
+	// Fill up the desired USC amount with the current Active pool collateral supply
+	uscLeftToFillCoin, colCoins := uscCoin, sdk.NewCoins()
 	for _, poolCoin := range poolCoins {
-		// Convert collateral -> USC
-		poolMeta, _ := colMetas[poolCoin.Denom]
+		poolMeta, _ := colMetas[poolCoin.Denom] // no need to check the error, since it is checked above
+
+		// Convert collateral -> USC to make it comparable (no amt loss here, since USC decimals are always GTE collateral's)
 		poolConvertedCoin, err := poolMeta.ConvertCoin(poolCoin, uscMeta)
 		if err != nil {
-			return nil, sdkErrors.Wrapf(types.ErrInternal, "converting pool token (%s) to USC: %v", poolCoin, err)
+			return sdk.Coin{}, nil, sdkErrors.Wrapf(types.ErrInternal, "converting pool token (%s) to USC: %v", poolCoin, err)
 		}
 
-		// Reduce USC convert amount
-		uscSubCoin := uscLeft
-		if poolConvertedCoin.IsLT(uscSubCoin) {
-			uscSubCoin = poolConvertedCoin
+		// Define USC left to fill reduce amount (how much could be covered by this collateral)
+		uscReduceCoin := uscLeftToFillCoin
+		if poolConvertedCoin.IsLT(uscReduceCoin) {
+			uscReduceCoin = poolConvertedCoin
 		}
-		uscLeft = uscLeft.Sub(uscSubCoin)
 
-		// Convert sub amount back to collateral
-		colCoin, err := uscMeta.ConvertCoin(uscSubCoin, poolMeta)
+		// Convert USC reduce amount to collateral (amt loss could happen here)
+		colCoin, err := uscMeta.ConvertCoin(uscReduceCoin, poolMeta)
 		if err != nil {
-			return nil, sdkErrors.Wrapf(types.ErrInternal, "converting USC token (%s) back to collateral denom (%s): %v", uscSubCoin, poolMeta.Denom, err)
+			return sdk.Coin{}, nil, sdkErrors.Wrapf(types.ErrInternal, "converting USC reduce token (%s) to collateral denom (%s): %v", uscReduceCoin, poolMeta.Denom, err)
 		}
+
+		// Skip the current collateral if its supply can't cover USC reduce amount, try the next one
+		if colCoin.Amount.IsZero() {
+			continue
+		}
+
+		// Apply current results
+		uscLeftToFillCoin = uscLeftToFillCoin.Sub(uscReduceCoin)
 		colCoins = colCoins.Add(colCoin)
 
 		// Check if redeem amount is filled up
-		if uscLeft.IsZero() {
+		if uscLeftToFillCoin.IsZero() {
 			break
 		}
 	}
-	if !uscLeft.IsZero() {
-		return nil, sdkErrors.Wrapf(types.ErrInternal, "USC token (%s) can not be filled up with the pool supply (%s)", uscCoin, poolCoins)
-	}
 
-	return colCoins, nil
+	return uscCoin.Sub(uscLeftToFillCoin), colCoins, nil
 }

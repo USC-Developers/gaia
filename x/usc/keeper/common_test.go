@@ -10,7 +10,8 @@ import (
 	"github.com/cosmos/gaia/v7/app/helpers"
 	"github.com/cosmos/gaia/v7/x/usc/keeper"
 	"github.com/cosmos/gaia/v7/x/usc/types"
-	"github.com/stretchr/testify/suite"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	tmProto "github.com/tendermint/tendermint/proto/tendermint/types"
 )
 
@@ -20,49 +21,66 @@ var (
 	BUSDMeta = types.TokenMeta{Denom: "abusd", Decimals: 18}
 	USDTMeta = types.TokenMeta{Denom: "uusdt", Decimals: 6}
 	USDCMeta = types.TokenMeta{Denom: "musdc", Decimals: 3}
-
-	GenBUSDAmt, _ = sdk.NewIntFromString("10000000000000000000") // 10.0
-	GenUSDTAmt, _ = sdk.NewIntFromString("10000000")             // 10.0
-	GenUSDCAmt, _ = sdk.NewIntFromString("10000")                // 10.0
-
-	GenCoins = sdk.NewCoins(
-		sdk.NewCoin("abusd", GenBUSDAmt),
-		sdk.NewCoin("uusdt", GenUSDTAmt),
-		sdk.NewCoin("musdc", GenUSDCAmt),
-	)
 )
 
-type TestSuite struct {
-	suite.Suite
-
+type TestEnv struct {
 	app         *gaiaapp.GaiaApp
 	ctx         sdk.Context
 	queryClient types.QueryClient
 	msgServer   types.MsgServer
-
-	accAddrs []sdk.AccAddress
 }
 
-func (s *TestSuite) SetupTest() {
-	app := helpers.Setup(s.T(), false, 1)
+func NewTestEnv(t *testing.T) *TestEnv {
+	// Base app
+	app := helpers.Setup(t, false, 1)
 	ctx := app.BaseApp.NewContext(false, tmProto.Header{Time: MockTimestamp})
 
+	// Add collateral metas
 	uscParams := app.USCKeeper.GetParams(ctx)
 	uscParams.CollateralMetas = []types.TokenMeta{BUSDMeta, USDTMeta, USDCMeta}
 	app.USCKeeper.SetParams(ctx, uscParams)
 
+	// Build services
 	queryHelper := baseapp.NewQueryServerTestHelper(ctx, app.InterfaceRegistry())
 	types.RegisterQueryServer(queryHelper, keeper.NewQueryServerImpl(app.USCKeeper))
 	queryClient := types.NewQueryClient(queryHelper)
 
 	msgServer := keeper.NewMsgServerImpl(app.USCKeeper)
 
-	genCoins := GenCoins
-	genAddrs := helpers.AddTestAddrs(app, ctx, 2, genCoins)
-
-	s.app, s.ctx, s.queryClient, s.msgServer, s.accAddrs = app, ctx, queryClient, msgServer, genAddrs
+	return &TestEnv{
+		app:         app,
+		ctx:         ctx,
+		queryClient: queryClient,
+		msgServer:   msgServer,
+	}
 }
 
-func TestUSCKeeper(t *testing.T) {
-	suite.Run(t, new(TestSuite))
+func (te *TestEnv) AddAccount(t *testing.T, coinsRaw string) (sdk.AccAddress, sdk.Coins) {
+	coins, err := sdk.ParseCoinsNormalized(coinsRaw)
+	require.NoError(t, err)
+
+	genAddrs := helpers.AddTestAddrs(te.app, te.ctx, 1, coins)
+
+	return genAddrs[0], coins
+}
+
+func (te *TestEnv) AddActivePoolBalance(t *testing.T, coinsRaw string) sdk.Coins {
+	coins, err := sdk.ParseCoinsNormalized(coinsRaw)
+	require.NoError(t, err)
+
+	require.NoError(t, te.app.BankKeeper.MintCoins(te.ctx, types.ActivePoolName, coins))
+
+	return coins
+}
+
+func (te *TestEnv) AddRedeemingPoolBalance(t *testing.T, coinsRaw string) sdk.Coins {
+	coins := te.AddActivePoolBalance(t, coinsRaw)
+	require.NoError(t, te.app.BankKeeper.SendCoinsFromModuleToModule(te.ctx, types.ActivePoolName, types.RedeemingPoolName, coins))
+
+	return coins
+}
+
+func (te *TestEnv) CheckInvariants(t *testing.T) {
+	msg, broken := keeper.AllInvariants(te.app.USCKeeper)(te.ctx)
+	assert.Falsef(t, broken, msg)
 }

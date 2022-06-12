@@ -9,7 +9,7 @@ import (
 )
 
 // BeginRedeeming creates a new redeem entry and enqueues it.
-func (k Keeper) BeginRedeeming(ctx sdk.Context, accAddr sdk.AccAddress, amount sdk.Coins) {
+func (k Keeper) BeginRedeeming(ctx sdk.Context, accAddr sdk.AccAddress, amount sdk.Coins) time.Time {
 	redeemEntry := types.RedeemEntry{
 		Address:          accAddr.String(),
 		CollateralAmount: amount,
@@ -21,6 +21,8 @@ func (k Keeper) BeginRedeeming(ctx sdk.Context, accAddr sdk.AccAddress, amount s
 	ctx.EventManager().EmitEvent(
 		types.NewRedeemQueuedEvent(accAddr, amount, completionTime),
 	)
+
+	return completionTime
 }
 
 // EndRedeeming dequeues all mature redeem entries and sends collaterals to a requester from the module's Redeeming pool.

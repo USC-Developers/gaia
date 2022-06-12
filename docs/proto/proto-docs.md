@@ -254,7 +254,7 @@ MsgMintUSCResponse defines the Msg/MintUSC response type.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| `minted_amount` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  |  |
+| `minted_amount` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  | minted_amount defines a minted USC coin. |
 
 
 
@@ -285,7 +285,9 @@ MsgMintUSCResponse defines the Msg/RedeemCollateral response type.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| `redeemed_amount` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) | repeated |  |
+| `burned_amount` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  | burned_amount defines the USC token converted amount (might be LT the requested amount). |
+| `redeemed_amount` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) | repeated | redeemed_amount defines collateral tokens that are transferred to an account after the redeeming timout. |
+| `completion_time` | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  | completion_time defines the redeeming period end time. |
 
 
 
