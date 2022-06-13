@@ -6,6 +6,8 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkErrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/gaia/v7/x/usc/types"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 var _ types.MsgServer = (*msgServer)(nil)
@@ -22,15 +24,14 @@ func NewMsgServerImpl(keeper Keeper) types.MsgServer {
 
 // MintUSC implements the types.MsgServer interface.
 func (k msgServer) MintUSC(goCtx context.Context, req *types.MsgMintUSC) (*types.MsgMintUSCResponse, error) {
-	ctx := sdk.UnwrapSDKContext(goCtx)
-
 	if req == nil {
-		return nil, sdkErrors.Wrapf(types.ErrInternal, "req is nil")
+		return nil, status.Errorf(codes.InvalidArgument, "empty request")
 	}
+	ctx := sdk.UnwrapSDKContext(goCtx)
 
 	accAddr, err := sdk.AccAddressFromBech32(req.Address)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.InvalidArgument, "address parsing: %v", err)
 	}
 
 	// Convert collateral coins to USC coin
@@ -60,15 +61,14 @@ func (k msgServer) MintUSC(goCtx context.Context, req *types.MsgMintUSC) (*types
 
 // RedeemCollateral implements the types.MsgServer interface.
 func (k msgServer) RedeemCollateral(goCtx context.Context, req *types.MsgRedeemCollateral) (*types.MsgRedeemCollateralResponse, error) {
-	ctx := sdk.UnwrapSDKContext(goCtx)
-
 	if req == nil {
-		return nil, sdkErrors.Wrapf(types.ErrInternal, "req is nil")
+		return nil, status.Errorf(codes.InvalidArgument, "empty request")
 	}
+	ctx := sdk.UnwrapSDKContext(goCtx)
 
 	accAddr, err := sdk.AccAddressFromBech32(req.Address)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.InvalidArgument, "address parsing: %v", err)
 	}
 
 	// Convert USC coin to collateral coins
@@ -96,7 +96,10 @@ func (k msgServer) RedeemCollateral(goCtx context.Context, req *types.MsgRedeemC
 	}
 
 	// Enqueue redeem request
-	completionTime := k.BeginRedeeming(ctx, accAddr, colCoins)
+	completionTime, err := k.BeginRedeeming(ctx, accAddr, colCoins)
+	if err != nil {
+		return nil, err
+	}
 
 	return &types.MsgRedeemCollateralResponse{
 		BurnedAmount:   uscCoin,

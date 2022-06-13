@@ -6,6 +6,7 @@ option (gogoproto.goproto_getters_all) = false;
 
 import "gogoproto/gogo.proto";
 import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
 import "cosmos/base/v1beta1/coin.proto";
 
 // Params defines the parameters for the x/usc module.
@@ -20,15 +21,20 @@ message Params {
     (gogoproto.stdduration) = true
   ];
 
+  // max_redeem_entries is a max number of concurrent redeem operations per account.
+  uint32 max_redeem_entries = 2 [
+    (gogoproto.moretags) = "yaml:\"max_redeem_entries\""
+  ];
+
   // collateral_metas defines a set of collateral token metas that are supported by the module.
-  repeated TokenMeta collateral_metas = 2 [
+  repeated TokenMeta collateral_metas = 3 [
     (gogoproto.moretags) = "yaml:\"collateral_metas\"",
     (gogoproto.nullable) = false
   ];
 
   // usc_meta defines the USC token meta.
   // USC token must has a higher precision (number of decimals) than other collaterals.
-  TokenMeta usc_meta = 3 [
+  TokenMeta usc_meta = 4 [
     (gogoproto.moretags) = "yaml:\"usc_meta\"",
     (gogoproto.nullable) = false
   ];
@@ -56,22 +62,55 @@ message TokenMeta {
   ];
 }
 
-// RedeemEntry defines the redeeming queue entry.
+// RedeemEntry defines a redeeming queue object entry.
 message RedeemEntry {
   option (gogoproto.equal) = true;
-  option (gogoproto.goproto_stringer) = true;
+  option (gogoproto.goproto_stringer) = false;
 
-  string address = 1;
-  repeated cosmos.base.v1beta1.Coin collateral_amount = 2 [
+  // address is a redeem target account.
+  string address = 1 [
+    (gogoproto.moretags) = "yaml:\"address\""
+  ];
+
+  // operations are redeem operations that are active.
+  repeated RedeemEntryOperation operations = 2 [
+    (gogoproto.moretags) = "yaml:\"operations\"",
     (gogoproto.nullable) = false
   ];
 }
 
-message RedeemEntries {
+// RedeemEntryOperation defines a single redeeming queue operation.
+message RedeemEntryOperation {
   option (gogoproto.equal) = true;
-  option (gogoproto.goproto_stringer) = true;
+  option (gogoproto.goproto_stringer) = false;
 
-  repeated RedeemEntry entries = 1 [
+  // creation_height is the height which the redeeming took place.
+  int64 creation_height = 1 [
+    (gogoproto.moretags) = "yaml:\"creation_height\""
+  ];
+
+  // completion_time is the unix time for redeeming completion.
+  google.protobuf.Timestamp completion_time = 2  [
+    (gogoproto.moretags) = "yaml:\"completion_time\"",
+    (gogoproto.nullable) = false,
+    (gogoproto.stdtime) = true
+  ];
+
+  // collateral_amount are collateral tokens to redeem.
+  repeated cosmos.base.v1beta1.Coin collateral_amount = 3 [
+    (gogoproto.moretags) = "yaml:\"collateral_amount\"",
+    (gogoproto.nullable) = false
+  ];
+}
+
+// RedeemingQueueData defines the redeeming queue value object (completionTime timestamp is used as a key for the queue).
+// Object is used to link queue data with a corresponding RedeemEntry object.
+message RedeemingQueueData {
+  option (gogoproto.equal)            = false;
+  option (gogoproto.goproto_getters)  = false;
+  option (gogoproto.goproto_stringer) = false;
+
+  repeated string addresses = 1 [
     (gogoproto.nullable) = false
   ];
 }

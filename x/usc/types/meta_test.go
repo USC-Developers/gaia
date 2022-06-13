@@ -37,7 +37,6 @@ func TestTokenMeta_ConvertCoin(t *testing.T) {
 	}
 
 	denomSrc, denomDst := "src", "dst"
-	invalidDenom := "#Invalid"
 
 	testCases := []testCase{
 		{
@@ -77,15 +76,15 @@ func TestTokenMeta_ConvertCoin(t *testing.T) {
 		},
 		{
 			name:          "Fail: invalid srcMeta.Denom",
-			srcMeta:       TokenMeta{Denom: invalidDenom, Decimals: 3},
+			srcMeta:       TokenMeta{Denom: InvalidDenom, Decimals: 3},
 			dstMeta:       TokenMeta{Denom: denomDst, Decimals: 3},
-			coinToConvert: sdk.Coin{Denom: invalidDenom, Amount: sdk.NewInt(1)},
+			coinToConvert: sdk.Coin{Denom: InvalidDenom, Amount: sdk.NewInt(1)},
 			errExpected:   true,
 		},
 		{
 			name:          "Fail: invalid dstMeta.Denom",
 			srcMeta:       TokenMeta{Denom: denomSrc, Decimals: 3},
-			dstMeta:       TokenMeta{Denom: invalidDenom, Decimals: 3},
+			dstMeta:       TokenMeta{Denom: InvalidDenom, Decimals: 3},
 			coinToConvert: sdk.Coin{Denom: denomSrc, Amount: sdk.NewInt(1)},
 			errExpected:   true,
 		},

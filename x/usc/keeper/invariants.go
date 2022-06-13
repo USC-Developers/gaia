@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"fmt"
-	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/gaia/v7/x/usc/types"
@@ -35,8 +34,11 @@ func RedeemingQueueInvariant(k Keeper) sdk.Invariant {
 		redeemPoolExpected := k.RedeemingPool(ctx)
 
 		redeemPoolCalculated := sdk.NewCoins()
-		k.IterateRedeemQueue(ctx, func(_ time.Time, entry types.RedeemEntry) (stop bool) {
-			redeemPoolCalculated = redeemPoolCalculated.Add(entry.CollateralAmount...)
+		k.IterateRedeemEntries(ctx, func(entry types.RedeemEntry) (stop bool) {
+			for _, op := range entry.Operations {
+				redeemPoolCalculated = redeemPoolCalculated.Add(op.CollateralAmount...)
+			}
+
 			return false
 		})
 

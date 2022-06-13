@@ -13,6 +13,12 @@ func (k Keeper) RedeemDur(ctx sdk.Context) (res time.Duration) {
 	return
 }
 
+// MaxRedeemEntries returns the max number of redeem entries per account.
+func (k Keeper) MaxRedeemEntries(ctx sdk.Context) (res uint32) {
+	k.paramStore.Get(ctx, types.ParamsKeyMaxRedeemEntries, &res)
+	return
+}
+
 // CollateralMetas returns supported collateral token metas.
 func (k Keeper) CollateralMetas(ctx sdk.Context) (res []types.TokenMeta) {
 	k.paramStore.Get(ctx, types.ParamsKeyCollateralMetas, &res)
@@ -41,6 +47,7 @@ func (k Keeper) USCMeta(ctx sdk.Context) (res types.TokenMeta) {
 func (k Keeper) GetParams(ctx sdk.Context) types.Params {
 	return types.NewParams(
 		k.RedeemDur(ctx),
+		k.MaxRedeemEntries(ctx),
 		k.CollateralMetas(ctx),
 		k.USCMeta(ctx),
 	)

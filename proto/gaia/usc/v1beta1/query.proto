@@ -21,6 +21,11 @@ service Query {
   rpc Params(QueryParamsRequest) returns (QueryParamsResponse) {
     option (google.api.http).get = "/gaia/usc/v1beta1/params";
   }
+
+  // RedeemEntry queries a redeem entry for an account.
+  rpc RedeemEntry(QueryRedeemEntryRequest) returns (QueryRedeemEntryResponse) {
+    option (google.api.http).get = "/gaia/usc/v1beta1/redeem-entry";
+  }
 }
 
 // QueryPoolRequest is request type for Query/Pool RPC method.
@@ -28,11 +33,13 @@ message QueryPoolRequest {}
 
 // QueryPoolResponse is response type for the Query/Pool RPC method.
 message QueryPoolResponse {
+  // active_pool is the Active pool supply that could be used for redeeming.
   repeated cosmos.base.v1beta1.Coin active_pool = 1 [
     (gogoproto.moretags) = "yaml:\"active_pool\"",
     (gogoproto.nullable) = false
   ];
 
+  // redeeming_pool is the Redeeming pool supply that is currently being redeemed.
   repeated cosmos.base.v1beta1.Coin redeeming_pool = 2 [
     (gogoproto.moretags) = "yaml:\"redeeming_pool\"",
     (gogoproto.nullable) = false
@@ -44,8 +51,26 @@ message QueryParamsRequest {}
 
 // QueryParamsResponse is response type for the Query/Params RPC method.
 message QueryParamsResponse {
+  // params are the current module parameters.
   Params params = 1 [
     (gogoproto.moretags) = "yaml:\"params\"",
+    (gogoproto.nullable) = false
+  ];
+}
+
+// QueryRedeemEntryRequest is request type for the Query/RedeemEntry RPC method.
+message QueryRedeemEntryRequest {
+  // address is the target account address.
+  string address = 1 [
+    (gogoproto.moretags) = "yaml:\"address\""
+  ];
+}
+
+// QueryRedeemEntryResponse is response type for the Query/RedeemEntry RPC method.
+message QueryRedeemEntryResponse {
+  // entry is the redeeming entry for an account.
+  RedeemEntry entry = 1 [
+    (gogoproto.moretags) = "yaml:\"entry\"",
     (gogoproto.nullable) = false
   ];
 }

@@ -108,15 +108,10 @@ func TestUSCUSCSupplyInvariant(t *testing.T) {
 
 func TestUSCRedeemingQueueInvariant(t *testing.T) {
 	type (
-		redeemEntry struct {
-			types.RedeemEntry
-			completionTime time.Time
-		}
-
 		testCase struct {
 			name      string
 			poolCoins sdk.Coins
-			entries   []redeemEntry
+			entries   []types.RedeemEntry
 			//
 			brokenExpected bool
 		}
@@ -133,33 +128,42 @@ func TestUSCRedeemingQueueInvariant(t *testing.T) {
 				sdk.NewCoin("usdt", sdk.NewInt(100)),
 				sdk.NewCoin("msdc", sdk.NewInt(1)),
 			),
-			entries: []redeemEntry{
+			entries: []types.RedeemEntry{
 				{
-					RedeemEntry: types.RedeemEntry{
-						Address: accAddr1.String(),
-						CollateralAmount: sdk.NewCoins(
-							sdk.NewCoin("usdt", sdk.NewInt(50)),
-						),
+					Address: accAddr1.String(),
+					Operations: []types.RedeemEntryOperation{
+						{
+							CreationHeight: 0,
+							CompletionTime: MockTimestamp,
+							CollateralAmount: sdk.NewCoins(
+								sdk.NewCoin("usdt", sdk.NewInt(50)),
+							),
+						},
 					},
-					completionTime: MockTimestamp,
 				},
 				{
-					RedeemEntry: types.RedeemEntry{
-						Address: accAddr2.String(),
-						CollateralAmount: sdk.NewCoins(
-							sdk.NewCoin("usdt", sdk.NewInt(50)),
-						),
+					Address: accAddr2.String(),
+					Operations: []types.RedeemEntryOperation{
+						{
+							CreationHeight: 0,
+							CompletionTime: MockTimestamp.Add(1 * time.Second),
+							CollateralAmount: sdk.NewCoins(
+								sdk.NewCoin("usdt", sdk.NewInt(50)),
+							),
+						},
 					},
-					completionTime: MockTimestamp.Add(1 * time.Second),
 				},
 				{
-					RedeemEntry: types.RedeemEntry{
-						Address: accAddr3.String(),
-						CollateralAmount: sdk.NewCoins(
-							sdk.NewCoin("msdc", sdk.NewInt(1)),
-						),
+					Address: accAddr3.String(),
+					Operations: []types.RedeemEntryOperation{
+						{
+							CreationHeight: 0,
+							CompletionTime: MockTimestamp.Add(2 * time.Second),
+							CollateralAmount: sdk.NewCoins(
+								sdk.NewCoin("msdc", sdk.NewInt(1)),
+							),
+						},
 					},
-					completionTime: MockTimestamp.Add(1 * time.Second),
 				},
 			},
 		},
@@ -168,15 +172,18 @@ func TestUSCRedeemingQueueInvariant(t *testing.T) {
 			poolCoins: sdk.NewCoins(
 				sdk.NewCoin("usdt", sdk.NewInt(100)),
 			),
-			entries: []redeemEntry{
+			entries: []types.RedeemEntry{
 				{
-					RedeemEntry: types.RedeemEntry{
-						Address: accAddr1.String(),
-						CollateralAmount: sdk.NewCoins(
-							sdk.NewCoin("usdt", sdk.NewInt(50)),
-						),
+					Address: accAddr1.String(),
+					Operations: []types.RedeemEntryOperation{
+						{
+							CreationHeight: 0,
+							CompletionTime: MockTimestamp,
+							CollateralAmount: sdk.NewCoins(
+								sdk.NewCoin("usdt", sdk.NewInt(50)),
+							),
+						},
 					},
-					completionTime: MockTimestamp,
 				},
 			},
 			brokenExpected: true,
@@ -191,7 +198,7 @@ func TestUSCRedeemingQueueInvariant(t *testing.T) {
 			te.AddRedeemingPoolBalance(t, tc.poolCoins.String())
 
 			for _, entry := range tc.entries {
-				k.InsertToRedeemQueue(ctx, entry.RedeemEntry, entry.completionTime)
+				k.SetRedeemEntry(ctx, entry)
 			}
 
 			msg, broken := keeper.RedeemingQueueInvariant(k)(ctx)

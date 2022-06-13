@@ -6,8 +6,9 @@
 
 - [gaia/usc/v1beta1/usc.proto](#gaia/usc/v1beta1/usc.proto)
     - [Params](#gaia.usc.v1beta1.Params)
-    - [RedeemEntries](#gaia.usc.v1beta1.RedeemEntries)
     - [RedeemEntry](#gaia.usc.v1beta1.RedeemEntry)
+    - [RedeemEntryOperation](#gaia.usc.v1beta1.RedeemEntryOperation)
+    - [RedeemingQueueData](#gaia.usc.v1beta1.RedeemingQueueData)
     - [TokenMeta](#gaia.usc.v1beta1.TokenMeta)
   
 - [gaia/usc/v1beta1/genesis.proto](#gaia/usc/v1beta1/genesis.proto)
@@ -18,6 +19,8 @@
     - [QueryParamsResponse](#gaia.usc.v1beta1.QueryParamsResponse)
     - [QueryPoolRequest](#gaia.usc.v1beta1.QueryPoolRequest)
     - [QueryPoolResponse](#gaia.usc.v1beta1.QueryPoolResponse)
+    - [QueryRedeemEntryRequest](#gaia.usc.v1beta1.QueryRedeemEntryRequest)
+    - [QueryRedeemEntryResponse](#gaia.usc.v1beta1.QueryRedeemEntryResponse)
   
     - [Query](#gaia.usc.v1beta1.Query)
   
@@ -49,23 +52,9 @@ Params defines the parameters for the x/usc module.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | `redeem_dur` | [google.protobuf.Duration](#google.protobuf.Duration) |  | redeem_dur defines USC -> collateral redeem duration (how long does it takes to convert). |
+| `max_redeem_entries` | [uint32](#uint32) |  | max_redeem_entries is a max number of concurrent redeem operations per account. |
 | `collateral_metas` | [TokenMeta](#gaia.usc.v1beta1.TokenMeta) | repeated | collateral_metas defines a set of collateral token metas that are supported by the module. |
 | `usc_meta` | [TokenMeta](#gaia.usc.v1beta1.TokenMeta) |  | usc_meta defines the USC token meta. USC token must has a higher precision (number of decimals) than other collaterals. |
-
-
-
-
-
-
-<a name="gaia.usc.v1beta1.RedeemEntries"></a>
-
-### RedeemEntries
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| `entries` | [RedeemEntry](#gaia.usc.v1beta1.RedeemEntry) | repeated |  |
 
 
 
@@ -75,13 +64,46 @@ Params defines the parameters for the x/usc module.
 <a name="gaia.usc.v1beta1.RedeemEntry"></a>
 
 ### RedeemEntry
-RedeemEntry defines the redeeming queue entry.
+RedeemEntry defines a redeeming queue object entry.
 
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| `address` | [string](#string) |  |  |
-| `collateral_amount` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) | repeated |  |
+| `address` | [string](#string) |  | address is a redeem target account. |
+| `operations` | [RedeemEntryOperation](#gaia.usc.v1beta1.RedeemEntryOperation) | repeated | operations are redeem operations that are active. |
+
+
+
+
+
+
+<a name="gaia.usc.v1beta1.RedeemEntryOperation"></a>
+
+### RedeemEntryOperation
+RedeemEntryOperation defines a single redeeming queue operation.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `creation_height` | [int64](#int64) |  | creation_height is the height which the redeeming took place. |
+| `completion_time` | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  | completion_time is the unix time for redeeming completion. |
+| `collateral_amount` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) | repeated | collateral_amount are collateral tokens to redeem. |
+
+
+
+
+
+
+<a name="gaia.usc.v1beta1.RedeemingQueueData"></a>
+
+### RedeemingQueueData
+RedeemingQueueData defines the redeeming queue value object (completionTime timestamp is used as a key for the queue).
+Object is used to link queue data with a corresponding RedeemEntry object.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `addresses` | [string](#string) | repeated |  |
 
 
 
@@ -129,7 +151,8 @@ GenesisState defines the x/usc module genesis state.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| `params` | [Params](#gaia.usc.v1beta1.Params) |  | params defines all the module paramaters. |
+| `params` | [Params](#gaia.usc.v1beta1.Params) |  | params are all the module parameters. |
+| `redeem_entries` | [RedeemEntry](#gaia.usc.v1beta1.RedeemEntry) | repeated | redeem_entries are active redeeming queue objects. |
 
 
 
@@ -170,7 +193,7 @@ QueryParamsResponse is response type for the Query/Params RPC method.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| `params` | [Params](#gaia.usc.v1beta1.Params) |  |  |
+| `params` | [Params](#gaia.usc.v1beta1.Params) |  | params are the current module parameters. |
 
 
 
@@ -195,8 +218,38 @@ QueryPoolResponse is response type for the Query/Pool RPC method.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| `active_pool` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) | repeated |  |
-| `redeeming_pool` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) | repeated |  |
+| `active_pool` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) | repeated | active_pool is the Active pool supply that could be used for redeeming. |
+| `redeeming_pool` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) | repeated | redeeming_pool is the Redeeming pool supply that is currently being redeemed. |
+
+
+
+
+
+
+<a name="gaia.usc.v1beta1.QueryRedeemEntryRequest"></a>
+
+### QueryRedeemEntryRequest
+QueryRedeemEntryRequest is request type for the Query/RedeemEntry RPC method.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `address` | [string](#string) |  | address is the target account address. |
+
+
+
+
+
+
+<a name="gaia.usc.v1beta1.QueryRedeemEntryResponse"></a>
+
+### QueryRedeemEntryResponse
+QueryRedeemEntryResponse is response type for the Query/RedeemEntry RPC method.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `entry` | [RedeemEntry](#gaia.usc.v1beta1.RedeemEntry) |  | entry is the redeeming entry for an account. |
 
 
 
@@ -218,6 +271,7 @@ Query defines the gRPC querier service.
 | ----------- | ------------ | ------------- | ------------| ------- | -------- |
 | `Pool` | [QueryPoolRequest](#gaia.usc.v1beta1.QueryPoolRequest) | [QueryPoolResponse](#gaia.usc.v1beta1.QueryPoolResponse) | Pool queries the collateral balance pool info. | GET|/gaia/usc/v1beta1/pool|
 | `Params` | [QueryParamsRequest](#gaia.usc.v1beta1.QueryParamsRequest) | [QueryParamsResponse](#gaia.usc.v1beta1.QueryParamsResponse) | Params queries the module parameters. | GET|/gaia/usc/v1beta1/params|
+| `RedeemEntry` | [QueryRedeemEntryRequest](#gaia.usc.v1beta1.QueryRedeemEntryRequest) | [QueryRedeemEntryResponse](#gaia.usc.v1beta1.QueryRedeemEntryResponse) | RedeemEntry queries a redeem entry for an account. | GET|/gaia/usc/v1beta1/redeem-entry|
 
  <!-- end services -->
 
@@ -238,8 +292,8 @@ MsgMintUSC defines a SDK message for the Msg/MintUSC request type.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| `address` | [string](#string) |  |  |
-| `collateral_amount` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) | repeated |  |
+| `address` | [string](#string) |  | address is the Bech32-encoded address of the target account. |
+| `collateral_amount` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) | repeated | collateral_amount are collateral token that should be exchanged to USC. |
 
 
 
@@ -254,7 +308,7 @@ MsgMintUSCResponse defines the Msg/MintUSC response type.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| `minted_amount` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  | minted_amount defines a minted USC coin. |
+| `minted_amount` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  | minted_amount is a minted USC coin. |
 
 
 
@@ -269,8 +323,8 @@ MsgRedeemCollateral defines a SDK message for the Msg/RedeemCollateral request t
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| `address` | [string](#string) |  |  |
-| `usc_amount` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  |  |
+| `address` | [string](#string) |  | address is the Bech32-encoded address of the target account. |
+| `usc_amount` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  | usc_amount is the USC token that should be exchanged to collateral tokens. |
 
 
 
@@ -285,8 +339,8 @@ MsgMintUSCResponse defines the Msg/RedeemCollateral response type.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| `burned_amount` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  | burned_amount defines the USC token converted amount (might be LT the requested amount). |
-| `redeemed_amount` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) | repeated | redeemed_amount defines collateral tokens that are transferred to an account after the redeeming timout. |
+| `burned_amount` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  | burned_amount is the USC token converted amount (might be LT the requested amount). |
+| `redeemed_amount` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) | repeated | redeemed_amount are collateral tokens that are transferred to an account after the redeeming timout. |
 | `completion_time` | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  | completion_time defines the redeeming period end time. |
 
 

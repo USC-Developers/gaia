@@ -10,7 +10,8 @@ import (
 
 // Params default values.
 const (
-	DefaultRedeemPeriod = 2 * 7 * 24 * time.Hour // 2 weeks
+	DefaultRedeemPeriod     = 2 * 7 * 24 * time.Hour // 2 weeks
+	DefaultMaxRedeemEntries = 7
 
 	DefaultUSCDenom    = "ausc"
 	DefaultUSCDesc     = "USC native token (atto USC)"
@@ -19,27 +20,30 @@ const (
 
 // Params storage keys.
 var (
-	ParamsKeyRedeemDur       = []byte("RedeemDur")
-	ParamsKeyCollateralMetas = []byte("CollateralMetas")
-	ParamsKeyUSCMeta         = []byte("USCMeta")
+	ParamsKeyRedeemDur        = []byte("RedeemDur")
+	ParamsKeyMaxRedeemEntries = []byte("MaxRedeemEntries")
+	ParamsKeyCollateralMetas  = []byte("CollateralMetas")
+	ParamsKeyUSCMeta          = []byte("USCMeta")
 )
 
 var _ paramsTypes.ParamSet = &Params{}
 
 // NewParams creates a new Params object.
-func NewParams(redeemDur time.Duration, collateralMetas []TokenMeta, uscMeta TokenMeta) Params {
+func NewParams(redeemDur time.Duration, maxRedeemEntries uint32, collateralMetas []TokenMeta, uscMeta TokenMeta) Params {
 	return Params{
-		RedeemDur:       redeemDur,
-		CollateralMetas: collateralMetas,
-		UscMeta:         uscMeta,
+		RedeemDur:        redeemDur,
+		MaxRedeemEntries: maxRedeemEntries,
+		CollateralMetas:  collateralMetas,
+		UscMeta:          uscMeta,
 	}
 }
 
 // DefaultParams returns Params with defaults.
 func DefaultParams() Params {
 	return Params{
-		RedeemDur:       DefaultRedeemPeriod,
-		CollateralMetas: []TokenMeta{},
+		RedeemDur:        DefaultRedeemPeriod,
+		MaxRedeemEntries: DefaultMaxRedeemEntries,
+		CollateralMetas:  []TokenMeta{},
 		UscMeta: TokenMeta{
 			Denom:       DefaultUSCDenom,
 			Decimals:    DefaultUSCDecimals,
@@ -64,6 +68,7 @@ func (p Params) String() string {
 func (p *Params) ParamSetPairs() paramsTypes.ParamSetPairs {
 	return paramsTypes.ParamSetPairs{
 		paramsTypes.NewParamSetPair(ParamsKeyRedeemDur, &p.RedeemDur, validateRedeemDurParam),
+		paramsTypes.NewParamSetPair(ParamsKeyMaxRedeemEntries, &p.MaxRedeemEntries, validateMaxRedeemEntriesParam),
 		paramsTypes.NewParamSetPair(ParamsKeyCollateralMetas, &p.CollateralMetas, validateCollateralMetasParam),
 		paramsTypes.NewParamSetPair(ParamsKeyUSCMeta, &p.UscMeta, validateUscMeta),
 	}
@@ -73,6 +78,10 @@ func (p *Params) ParamSetPairs() paramsTypes.ParamSetPairs {
 func (p Params) Validate() error {
 	// Basic
 	if err := validateRedeemDurParam(p.RedeemDur); err != nil {
+		return err
+	}
+
+	if err := validateMaxRedeemEntriesParam(p.MaxRedeemEntries); err != nil {
 		return err
 	}
 
@@ -114,6 +123,21 @@ func validateRedeemDurParam(i interface{}) (retErr error) {
 
 	if v < 0 {
 		return fmt.Errorf("must be GTE 0 (%d)", v)
+	}
+
+	return
+}
+
+// validateMaxRedeemEntriesParam validates the MaxRedeemEntries param.
+func validateMaxRedeemEntriesParam(i interface{}) (retErr error) {
+	defer func() {
+		if retErr != nil {
+			retErr = fmt.Errorf("max_redeem_entries param: %w", retErr)
+		}
+	}()
+
+	if _, ok := i.(uint32); !ok {
+		return fmt.Errorf("invalid parameter type (%T, uint32 is expected)", i)
 	}
 
 	return

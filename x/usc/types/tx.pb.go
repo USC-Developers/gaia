@@ -35,7 +35,9 @@ const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 // MsgMintUSC defines a SDK message for the Msg/MintUSC request type.
 type MsgMintUSC struct {
-	Address          string       `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty" yaml:"address"`
+	// address is the Bech32-encoded address of the target account.
+	Address string `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty" yaml:"address"`
+	// collateral_amount are collateral token that should be exchanged to USC.
 	CollateralAmount []types.Coin `protobuf:"bytes,2,rep,name=collateral_amount,json=collateralAmount,proto3" json:"collateral_amount" yaml:"collateral_amount"`
 }
 
@@ -74,7 +76,7 @@ var xxx_messageInfo_MsgMintUSC proto.InternalMessageInfo
 
 // MsgMintUSCResponse defines the Msg/MintUSC response type.
 type MsgMintUSCResponse struct {
-	// minted_amount defines a minted USC coin.
+	// minted_amount is a minted USC coin.
 	MintedAmount types.Coin `protobuf:"bytes,1,opt,name=minted_amount,json=mintedAmount,proto3" json:"minted_amount" yaml:"minted_amount"`
 }
 
@@ -113,7 +115,9 @@ var xxx_messageInfo_MsgMintUSCResponse proto.InternalMessageInfo
 
 // MsgRedeemCollateral defines a SDK message for the Msg/RedeemCollateral request type.
 type MsgRedeemCollateral struct {
-	Address   string     `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty" yaml:"address"`
+	// address is the Bech32-encoded address of the target account.
+	Address string `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty" yaml:"address"`
+	// usc_amount is the USC token that should be exchanged to collateral tokens.
 	UscAmount types.Coin `protobuf:"bytes,2,opt,name=usc_amount,json=uscAmount,proto3" json:"usc_amount" yaml:"amount"`
 }
 
@@ -152,9 +156,9 @@ var xxx_messageInfo_MsgRedeemCollateral proto.InternalMessageInfo
 
 // MsgMintUSCResponse defines the Msg/RedeemCollateral response type.
 type MsgRedeemCollateralResponse struct {
-	// burned_amount defines the USC token converted amount (might be LT the requested amount).
+	// burned_amount is the USC token converted amount (might be LT the requested amount).
 	BurnedAmount types.Coin `protobuf:"bytes,1,opt,name=burned_amount,json=burnedAmount,proto3" json:"burned_amount" yaml:"burned_amount"`
-	// redeemed_amount defines collateral tokens that are transferred to an account after the redeeming timout.
+	// redeemed_amount are collateral tokens that are transferred to an account after the redeeming timout.
 	RedeemedAmount []types.Coin `protobuf:"bytes,2,rep,name=redeemed_amount,json=redeemedAmount,proto3" json:"redeemed_amount" yaml:"redeemed_amount"`
 	// completion_time defines the redeeming period end time.
 	CompletionTime time.Time `protobuf:"bytes,3,opt,name=completion_time,json=completionTime,proto3,stdtime" json:"completion_time" yaml:"completion_time"`

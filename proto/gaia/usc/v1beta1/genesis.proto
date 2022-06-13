@@ -10,8 +10,13 @@ import "gaia/usc/v1beta1/usc.proto";
 
 // GenesisState defines the x/usc module genesis state.
 message GenesisState {
-  // params defines all the module paramaters.
+  // params are all the module parameters.
   Params params = 1 [
+    (gogoproto.nullable) = false
+  ];
+
+  // redeem_entries are active redeeming queue objects.
+  repeated RedeemEntry redeem_entries =2 [
     (gogoproto.nullable) = false
   ];
 }

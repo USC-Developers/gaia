@@ -29,18 +29,21 @@ const (
 )
 
 var (
-	// RedeemingQueueKey prefix for timestamps in redeeming queue.
+	// RedeemingQueueKey is a storage prefix for the redeeming queue keys.
 	RedeemingQueueKey = []byte{0x10}
+	// RedeemEntryKey is a storage prefix for storing RedeemEntry objects.
+	RedeemEntryKey = []byte{0x11}
 )
 
-// GetRedeemingQueueKey creates storage key for all redeem request for a specific timeSlice.
+// GetRedeemingQueueKey creates a storage key for the redeeming queue RedeemingQueueData object.
+// The redeeming queue is an array of timeSlices.
 func GetRedeemingQueueKey(timestamp time.Time) []byte {
 	bz := sdk.FormatTimeBytes(timestamp)
 
 	return append(RedeemingQueueKey, bz...)
 }
 
-// ParseRedeemingQueueKey parses timeSlice storage key.
+// ParseRedeemingQueueKey parses the redeeming queue timeSlice storage key.
 func ParseRedeemingQueueKey(key []byte) time.Time {
 	if len(key) == 0 {
 		panic(fmt.Errorf("parsing timeSlice key: empty key"))
@@ -57,4 +60,11 @@ func ParseRedeemingQueueKey(key []byte) time.Time {
 	}
 
 	return timestamp
+}
+
+// GetRedeemEntryKey creates a storage key for RedeemEntry object.
+func GetRedeemEntryKey(accAddr sdk.AccAddress) []byte {
+	accAddrBz := accAddr.Bytes()
+
+	return append(RedeemEntryKey, accAddrBz...)
 }
