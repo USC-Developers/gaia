@@ -25,6 +25,20 @@ func (k Keeper) CollateralMetas(ctx sdk.Context) (res []types.TokenMeta) {
 	return
 }
 
+// BaseMeta returns meta with the minimum decimals amount (to normalize coins).
+func (k Keeper) BaseMeta(ctx sdk.Context) types.TokenMeta {
+	uscMeta := k.USCMeta(ctx)
+	minMeta := uscMeta
+
+	for _, meta := range k.CollateralMetas(ctx) {
+		if meta.Decimals > minMeta.Decimals {
+			minMeta = meta
+		}
+	}
+
+	return minMeta
+}
+
 // CollateralMetasSet returns supported collateral token metas set (key: denom).
 func (k Keeper) CollateralMetasSet(ctx sdk.Context) map[string]types.TokenMeta {
 	metas := k.CollateralMetas(ctx)

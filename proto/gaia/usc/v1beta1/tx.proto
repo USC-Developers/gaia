@@ -34,9 +34,15 @@ message MsgMintUSC {
 
 // MsgMintUSCResponse defines the Msg/MintUSC response type.
 message MsgMintUSCResponse {
-  // minted_amount is a minted USC coin.
+  // minted_amount is a minted USC token.
   cosmos.base.v1beta1.Coin minted_amount = 1 [
     (gogoproto.moretags) = "yaml:\"minted_amount\"",
+    (gogoproto.nullable) = false
+  ];
+
+  // collaterals_amount are collateral tokens used for the mint.
+  repeated cosmos.base.v1beta1.Coin collaterals_amount = 2 [
+    (gogoproto.moretags) = "yaml:\"collaterals_amount\"",
     (gogoproto.nullable) = false
   ];
 }

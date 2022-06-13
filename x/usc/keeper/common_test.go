@@ -18,7 +18,7 @@ import (
 var (
 	MockTimestamp = time.Date(2022, 1, 1, 0, 0, 0, 0, time.UTC)
 
-	BUSDMeta = types.TokenMeta{Denom: "abusd", Decimals: 18}
+	BUSDMeta = types.TokenMeta{Denom: "nbusd", Decimals: 9}
 	USDTMeta = types.TokenMeta{Denom: "uusdt", Decimals: 6}
 	USDCMeta = types.TokenMeta{Denom: "musdc", Decimals: 3}
 )

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/gaia/v7/x/usc/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -93,6 +94,26 @@ func TestUSCKeeperBeginRedeeming(t *testing.T) {
 		require.Len(t, data.Addresses, 1)
 		assert.Equal(t, accAddr2.String(), data.Addresses[0])
 	}
+}
+
+func TestUSCKeeperRedeemingLimit(t *testing.T) {
+	te := NewTestEnv(t)
+	ctx, keeper := te.ctx, te.app.USCKeeper
+
+	// Fixtures
+	accAddr, _ := te.AddAccount(t, "")
+	redeemCoins := sdk.NewCoins(sdk.NewCoin("uusdt", sdk.NewInt(1000)))
+
+	// Fill up available slots
+	for i := uint32(0); i < keeper.MaxRedeemEntries(ctx)-1; i++ {
+		_, err := keeper.BeginRedeeming(ctx, accAddr, redeemCoins)
+		assert.NoError(t, err)
+	}
+
+	// Limit reached
+	_, err := keeper.BeginRedeeming(ctx, accAddr, redeemCoins)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, types.ErrMaxRedeemEntries)
 }
 
 func TestUSCKeeperRedeemingQueue(t *testing.T) {

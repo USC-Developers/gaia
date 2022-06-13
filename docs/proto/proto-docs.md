@@ -308,7 +308,8 @@ MsgMintUSCResponse defines the Msg/MintUSC response type.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| `minted_amount` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  | minted_amount is a minted USC coin. |
+| `minted_amount` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  | minted_amount is a minted USC token. |
+| `collaterals_amount` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) | repeated | collaterals_amount are collateral tokens used for the mint. |
 
 
 

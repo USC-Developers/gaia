@@ -26,10 +26,6 @@ func (k Keeper) BeginRedeeming(ctx sdk.Context, accAddr sdk.AccAddress, amount s
 	k.SetRedeemEntry(ctx, entry)
 	k.InsertToRedeemQueue(ctx, completionTime, accAddr)
 
-	ctx.EventManager().EmitEvent(
-		types.NewRedeemQueuedEvent(accAddr, amount, completionTime),
-	)
-
 	return completionTime, nil
 }
 

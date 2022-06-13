@@ -56,42 +56,47 @@ func (k Keeper) RedeemingPool(ctx sdk.Context) sdk.Coins {
 }
 
 // ConvertCollateralsToUSC converts collateral coins to USC coin in 1:1 relation.
-func (k Keeper) ConvertCollateralsToUSC(ctx sdk.Context, colCoins sdk.Coins) (sdk.Coin, error) {
+func (k Keeper) ConvertCollateralsToUSC(ctx sdk.Context, colCoins sdk.Coins) (uscCoin sdk.Coin, colUsedCoins sdk.Coins, retErr error) {
 	uscMeta, colMetas := k.USCMeta(ctx), k.CollateralMetasSet(ctx)
 
-	uscCoin := uscMeta.NewZeroCoin()
+	uscCoin = uscMeta.NewZeroCoin()
 	for _, colCoin := range colCoins {
 		// Check if denom is supported
 		colMeta, ok := colMetas[colCoin.Denom]
 		if !ok {
-			return sdk.Coin{}, sdkErrors.Wrapf(types.ErrUnsupportedCollateral, "denom (%s)", colCoin.Denom)
+			retErr = sdkErrors.Wrapf(types.ErrUnsupportedCollateral, "denom (%s)", colCoin.Denom)
+			return
 		}
 
-		// Convert collateral -> USC, add USCs
-		colConvertedCoin, err := colMeta.ConvertCoin(colCoin, uscMeta)
+		// Convert collateral -> USC, note actually used collateral amount
+		colConvertedCoin, colUsedCoin, err := colMeta.ConvertCoin2(colCoin, uscMeta)
 		if err != nil {
-			return sdk.Coin{}, sdkErrors.Wrapf(types.ErrInternal, "converting collateral token (%s) to USC: %v", colCoin, err)
+			retErr = sdkErrors.Wrapf(types.ErrInternal, "converting collateral token (%s) to USC: %v", colCoin, err)
+			return
 		}
 		uscCoin = uscCoin.Add(colConvertedCoin)
+		colUsedCoins = colUsedCoins.Add(colUsedCoin)
 	}
 
-	return uscCoin, nil
+	return
 }
 
 // ConvertUSCToCollaterals converts USC coin to collateral coins in 1:1 relation iterating module's Active pool from the highest supply to the lowest.
 // Returns converted USC (equals to input if there are no leftovers)  and collaterals coins.
-func (k Keeper) ConvertUSCToCollaterals(ctx sdk.Context, uscCoin sdk.Coin) (sdk.Coin, sdk.Coins, error) {
+func (k Keeper) ConvertUSCToCollaterals(ctx sdk.Context, uscCoin sdk.Coin) (uscUsedCoin sdk.Coin, colCoins sdk.Coins, retErr error) {
 	uscMeta, colMetas := k.USCMeta(ctx), k.CollateralMetasSet(ctx)
 
 	// Check source denom
 	if uscCoin.Denom != uscMeta.Denom {
-		return sdk.Coin{}, nil, sdkErrors.Wrapf(types.ErrInvalidUSC, "got (%s), expected (%s)", uscCoin.Denom, uscMeta.Denom)
+		retErr = sdkErrors.Wrapf(types.ErrInvalidUSC, "got (%s), expected (%s)", uscCoin.Denom, uscMeta.Denom)
+		return
 	}
 
 	// Sort active pool coins from the highest supply to the lowest normalizing amounts
 	poolCoins := k.ActivePool(ctx)
 
-	poolCoinsNormalized := make(sdk.Coins, 0, len(poolCoins))
+	baseMeta := k.BaseMeta(ctx)
+	poolCoinsNormalizedSet := make(map[string]sdk.Int)
 	for _, poolCoin := range poolCoins {
 		poolMeta, ok := colMetas[poolCoin.Denom]
 		if !ok {
@@ -99,31 +104,37 @@ func (k Keeper) ConvertUSCToCollaterals(ctx sdk.Context, uscCoin sdk.Coin) (sdk.
 			continue
 		}
 
-		poolCoinNormalized, err := poolMeta.NormalizeCoin(poolCoin, uscMeta)
+		normalizedCoin, err := poolMeta.NormalizeCoin(poolCoin, baseMeta)
 		if err != nil {
-			return sdk.Coin{}, nil, sdkErrors.Wrapf(types.ErrInternal, "normalizing ActivePool coin (%s): %v", poolCoin, err)
+			retErr = sdkErrors.Wrapf(types.ErrInternal, "normalizing ActivePool coin (%s): %v", poolCoin, err)
+			return
 		}
-		poolCoinsNormalized = append(poolCoinsNormalized, poolCoinNormalized)
+		poolCoinsNormalizedSet[poolCoin.Denom] = normalizedCoin.Amount
 	}
 	sort.Slice(poolCoins, func(i, j int) bool {
-		if poolCoinsNormalized[i].Amount.GT(poolCoinsNormalized[j].Amount) {
+		iDenom, jDenom := poolCoins[i].Denom, poolCoins[j].Denom
+		iAmt, jAmt := poolCoinsNormalizedSet[poolCoins[i].Denom], poolCoinsNormalizedSet[poolCoins[j].Denom]
+
+		if iAmt.GT(jAmt) {
 			return true
 		}
-		if poolCoinsNormalized[i].Amount.Equal(poolCoinsNormalized[j].Amount) && poolCoinsNormalized[i].Denom > poolCoinsNormalized[j].Denom {
+		if iAmt.Equal(jAmt) && iDenom > jDenom {
 			return true
 		}
+
 		return false
 	})
 
 	// Fill up the desired USC amount with the current Active pool collateral supply
-	uscLeftToFillCoin, colCoins := uscCoin, sdk.NewCoins()
+	uscLeftToFillCoin := uscCoin
 	for _, poolCoin := range poolCoins {
 		poolMeta, _ := colMetas[poolCoin.Denom] // no need to check the error, since it is checked above
 
 		// Convert collateral -> USC to make it comparable (no amt loss here, since USC decimals are always GTE collateral's)
 		poolConvertedCoin, err := poolMeta.ConvertCoin(poolCoin, uscMeta)
 		if err != nil {
-			return sdk.Coin{}, nil, sdkErrors.Wrapf(types.ErrInternal, "converting pool token (%s) to USC: %v", poolCoin, err)
+			retErr = sdkErrors.Wrapf(types.ErrInternal, "converting pool token (%s) to USC: %v", poolCoin, err)
+			return
 		}
 
 		// Define USC left to fill reduce amount (how much could be covered by this collateral)
@@ -133,9 +144,10 @@ func (k Keeper) ConvertUSCToCollaterals(ctx sdk.Context, uscCoin sdk.Coin) (sdk.
 		}
 
 		// Convert USC reduce amount to collateral (amt loss could happen here)
-		colCoin, err := uscMeta.ConvertCoin(uscReduceCoin, poolMeta)
+		colCoin, uscReduceUsedCoin, err := uscMeta.ConvertCoin2(uscReduceCoin, poolMeta)
 		if err != nil {
-			return sdk.Coin{}, nil, sdkErrors.Wrapf(types.ErrInternal, "converting USC reduce token (%s) to collateral denom (%s): %v", uscReduceCoin, poolMeta.Denom, err)
+			retErr = sdkErrors.Wrapf(types.ErrInternal, "converting USC reduce token (%s) to collateral denom (%s): %v", uscReduceCoin, poolMeta.Denom, err)
+			return
 		}
 
 		// Skip the current collateral if its supply can't cover USC reduce amount, try the next one
@@ -144,7 +156,7 @@ func (k Keeper) ConvertUSCToCollaterals(ctx sdk.Context, uscCoin sdk.Coin) (sdk.
 		}
 
 		// Apply current results
-		uscLeftToFillCoin = uscLeftToFillCoin.Sub(uscReduceCoin)
+		uscLeftToFillCoin = uscLeftToFillCoin.Sub(uscReduceUsedCoin)
 		colCoins = colCoins.Add(colCoin)
 
 		// Check if redeem amount is filled up
@@ -152,6 +164,7 @@ func (k Keeper) ConvertUSCToCollaterals(ctx sdk.Context, uscCoin sdk.Coin) (sdk.
 			break
 		}
 	}
+	uscUsedCoin = uscCoin.Sub(uscLeftToFillCoin)
 
-	return uscCoin.Sub(uscLeftToFillCoin), colCoins, nil
+	return
 }

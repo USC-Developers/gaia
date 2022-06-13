@@ -108,9 +108,9 @@ echo "Change other genesis settings"
     echo
 
     echo "  Adding x/usc metadata for supported collaterals [usdt, usdc, busd]"
+      usdc_meta='{ "denom": "musdc", "decimals": 3, "description": "USDC native token (milli USDC)" }'
       usdt_meta='{ "denom": "uusdt", "decimals": 6, "description": "USDT native token (micro USDT)" }'
-      usdc_meta='{ "denom": "uusdc", "decimals": 6, "description": "USDC native token (micro USDC)" }'
-      busd_meta='{ "denom": "abusd", "decimals": 18, "description": "BUSD native token (atto BUSD)" }'
+      busd_meta='{ "denom": "nbusd", "decimals": 9, "description": "BUSD native token (nano BUSD)" }'
 
       jq --argjson usdt "${usdt_meta}" --argjson usdc "${usdc_meta}" --argjson busd "${busd_meta}" '.app_state.usc.params.collateral_metas += [ $usdt, $usdc, $busd ]' "${node_dir}/config/genesis.json" > "${node_dir}/config/tmp.json"
       mv "${node_dir}/config/tmp.json" "${node_dir}/config/genesis.json"

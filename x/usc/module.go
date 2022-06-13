@@ -102,6 +102,17 @@ func (AppModule) Name() string {
 	return types.ModuleName
 }
 
+// InitModule will initialize the module. It should only be called once and as an alternative to InitGenesis via chain Upgrade.
+func (am AppModule) InitModule(ctx sdk.Context, params types.Params) {
+	if err := params.Validate(); err != nil {
+		panic(fmt.Errorf("x/usc module: InitModule: invalid params: %w", err))
+	}
+
+	am.keeper.SetParams(ctx, params)
+
+	am.keeper.Logger(ctx).Info("Module initialized")
+}
+
 // RegisterInvariants registers the staking module invariants.
 func (am AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {
 	keeper.RegisterInvariants(ir, am.keeper)

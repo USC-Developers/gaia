@@ -32,23 +32,20 @@ func TestUSCUSCSupplyInvariant(t *testing.T) {
 	accAddr2 := sdk.AccAddress(ed25519.GenPrivKey().PubKey().Address())
 	accAddr3 := sdk.AccAddress(ed25519.GenPrivKey().PubKey().Address())
 
-	busdSupplyAmt, ok := sdk.NewIntFromString("3000000000000000000") // 3.0 BUSD
-	require.True(t, ok)
-	busdConvertedAmt := busdSupplyAmt // 3.0 USC
+	busdSupplyAmt := sdk.NewInt(3000000000) // 3.0 BUSD
+	busdConvertedAmt := sdk.NewInt(3000000) // 3.0 USC
 
-	usdtSupplyuAmt, ok := sdk.NewIntFromString("2000000") // 2.0 USDT
-	require.True(t, ok)
-	usdtConvertedAmt, ok := sdk.NewIntFromString("2000000000000000000") // 2.0 USC
+	usdtSupplyuAmt := sdk.NewInt(2000000)   // 2.0 USDT
+	usdtConvertedAmt := sdk.NewInt(2000000) // 2.0 USC
 
-	usdcSupplyAmt, ok := sdk.NewIntFromString("1000") // 1.0 USDC
-	require.True(t, ok)
-	usdcConvertedAmt, ok := sdk.NewIntFromString("1000000000000000000") // 2.0 USC
+	usdcSupplyAmt := sdk.NewInt(1000)       // 1.0 USDC
+	usdcConvertedAmt := sdk.NewInt(1000000) // 1.0 USC
 
 	testCases := []testCase{
 		{
 			name: "OK",
 			poolCoins: sdk.NewCoins(
-				sdk.NewCoin("abusd", busdSupplyAmt),
+				sdk.NewCoin("nbusd", busdSupplyAmt),
 				sdk.NewCoin("uusdt", usdtSupplyuAmt),
 				sdk.NewCoin("musdc", usdcSupplyAmt),
 			),
@@ -70,7 +67,7 @@ func TestUSCUSCSupplyInvariant(t *testing.T) {
 		{
 			name: "Fail",
 			poolCoins: sdk.NewCoins(
-				sdk.NewCoin("abusd", busdSupplyAmt),
+				sdk.NewCoin("nbusd", busdSupplyAmt),
 				sdk.NewCoin("uusdt", usdtSupplyuAmt),
 				sdk.NewCoin("musdc", usdcSupplyAmt),
 			),

@@ -15,7 +15,6 @@ func TestUSCParamsTest(t *testing.T) {
 		errExpected bool
 	}
 
-	invalidDenom := "#Invalid"
 	validParams := Params{
 		RedeemDur: 1 * time.Second,
 		CollateralMetas: []TokenMeta{
@@ -33,7 +32,7 @@ func TestUSCParamsTest(t *testing.T) {
 			},
 		},
 		{
-			name: "Fail: UscMeta: invalid denom",
+			name: "Fail: RedeemDur: negative",
 			buildInput: func() Params {
 				p := validParams
 				p.RedeemDur = -1 * time.Second
@@ -45,7 +44,16 @@ func TestUSCParamsTest(t *testing.T) {
 			name: "Fail: Meta: invalid denom",
 			buildInput: func() Params {
 				p := validParams
-				p.UscMeta.Denom = invalidDenom
+				p.UscMeta.Denom = InvalidDenom
+				return p
+			},
+			errExpected: true,
+		},
+		{
+			name: "Fail: Meta: zero decimals",
+			buildInput: func() Params {
+				p := validParams
+				p.UscMeta.Decimals = 0
 				return p
 			},
 			errExpected: true,
@@ -64,15 +72,6 @@ func TestUSCParamsTest(t *testing.T) {
 			buildInput: func() Params {
 				p := validParams
 				p.CollateralMetas = append(p.CollateralMetas, p.CollateralMetas[0])
-				return p
-			},
-			errExpected: true,
-		},
-		{
-			name: "Fail: UscMeta: not the highest decimals value",
-			buildInput: func() Params {
-				p := validParams
-				p.UscMeta.Decimals = 2
 				return p
 			},
 			errExpected: true,

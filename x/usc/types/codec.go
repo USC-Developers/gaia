@@ -11,8 +11,8 @@ import (
 // RegisterLegacyAminoCodec registers the necessary x/usc interfaces and concrete types on the provided LegacyAmino codec.
 // These types are used for Amino JSON serialization.
 func RegisterLegacyAminoCodec(cdc *codec.LegacyAmino) {
-	cdc.RegisterConcrete(&MsgMintUSC{}, "gaia/MsgMintUSC", nil)
-	cdc.RegisterConcrete(&MsgRedeemCollateral{}, "gaia/MsgRedeemCollateral", nil)
+	cdc.RegisterConcrete(&MsgMintUSC{}, "usc/MsgMintUSC", nil)
+	cdc.RegisterConcrete(&MsgRedeemCollateral{}, "usc/MsgRedeemCollateral", nil)
 }
 
 // RegisterInterfaces registers the x/usc interfaces types with the interface registry.

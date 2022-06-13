@@ -60,7 +60,7 @@ func USCSupplyInvariant(k Keeper) sdk.Invariant {
 		uscSupplyExpected := k.bankKeeper.GetSupply(ctx, k.USCMeta(ctx).Denom)
 
 		colPoolCurrent := k.ActivePool(ctx)
-		uscPoolCalculated, err := k.ConvertCollateralsToUSC(ctx, colPoolCurrent)
+		uscPoolCalculated, _, err := k.ConvertCollateralsToUSC(ctx, colPoolCurrent)
 		if err != nil {
 			panic(err)
 		}

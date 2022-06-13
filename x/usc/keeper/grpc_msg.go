@@ -35,13 +35,16 @@ func (k msgServer) MintUSC(goCtx context.Context, req *types.MsgMintUSC) (*types
 	}
 
 	// Convert collateral coins to USC coin
-	uscCoin, err := k.ConvertCollateralsToUSC(ctx, req.CollateralAmount)
+	uscCoin, colUsedCoins, err := k.ConvertCollateralsToUSC(ctx, req.CollateralAmount)
 	if err != nil {
 		return nil, err
 	}
+	if uscCoin.IsZero() {
+		return nil, sdkErrors.Wrapf(sdkErrors.ErrInsufficientFunds, "can not mint USC tokens with provided collaterals")
+	}
 
 	// Transfer account's collateral coins to the module's Active pool
-	if err := k.bankKeeper.SendCoinsFromAccountToModule(ctx, accAddr, types.ActivePoolName, req.CollateralAmount); err != nil {
+	if err := k.bankKeeper.SendCoinsFromAccountToModule(ctx, accAddr, types.ActivePoolName, colUsedCoins); err != nil {
 		return nil, err
 	}
 
@@ -54,8 +57,14 @@ func (k msgServer) MintUSC(goCtx context.Context, req *types.MsgMintUSC) (*types
 		return nil, sdkErrors.Wrapf(types.ErrInternal, "sending USC coin (%s) from module to account: %v", uscCoin, err)
 	}
 
+	// Emit event
+	ctx.EventManager().EmitEvent(
+		types.NewMintEvent(accAddr, uscCoin, colUsedCoins),
+	)
+
 	return &types.MsgMintUSCResponse{
-		MintedAmount: uscCoin,
+		MintedAmount:      uscCoin,
+		CollateralsAmount: colUsedCoins,
 	}, nil
 }
 
@@ -72,21 +81,21 @@ func (k msgServer) RedeemCollateral(goCtx context.Context, req *types.MsgRedeemC
 	}
 
 	// Convert USC coin to collateral coins
-	uscCoin, colCoins, err := k.ConvertUSCToCollaterals(ctx, req.UscAmount)
+	uscUsedCoin, colCoins, err := k.ConvertUSCToCollaterals(ctx, req.UscAmount)
 	if err != nil {
 		return nil, err
 	}
 	if colCoins.IsZero() {
-		return nil, sdkErrors.Wrapf(types.ErrRedeemDeclined, "USC amount is too small or pool funds are insufficient")
+		return nil, sdkErrors.Wrapf(sdkErrors.ErrInsufficientFunds, "USC amount is too small or pool funds are insufficient")
 	}
 
 	// Transfer account's USC coin to the module's Redeeming pool
-	if err := k.bankKeeper.SendCoinsFromAccountToModule(ctx, accAddr, types.RedeemingPoolName, sdk.NewCoins(uscCoin)); err != nil {
+	if err := k.bankKeeper.SendCoinsFromAccountToModule(ctx, accAddr, types.RedeemingPoolName, sdk.NewCoins(uscUsedCoin)); err != nil {
 		return nil, err
 	}
 
 	// Burn USC coin
-	if err := k.bankKeeper.BurnCoins(ctx, types.RedeemingPoolName, sdk.NewCoins(uscCoin)); err != nil {
+	if err := k.bankKeeper.BurnCoins(ctx, types.RedeemingPoolName, sdk.NewCoins(uscUsedCoin)); err != nil {
 		return nil, sdkErrors.Wrapf(types.ErrInternal, "burning USC coin (%s): %v", req.UscAmount, err)
 	}
 
@@ -101,8 +110,13 @@ func (k msgServer) RedeemCollateral(goCtx context.Context, req *types.MsgRedeemC
 		return nil, err
 	}
 
+	// Emit event
+	ctx.EventManager().EmitEvent(
+		types.NewRedeemQueuedEvent(accAddr, uscUsedCoin, colCoins, completionTime),
+	)
+
 	return &types.MsgRedeemCollateralResponse{
-		BurnedAmount:   uscCoin,
+		BurnedAmount:   uscUsedCoin,
 		RedeemedAmount: colCoins,
 		CompletionTime: completionTime,
 	}, nil

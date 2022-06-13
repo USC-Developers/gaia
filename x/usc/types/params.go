@@ -13,9 +13,9 @@ const (
 	DefaultRedeemPeriod     = 2 * 7 * 24 * time.Hour // 2 weeks
 	DefaultMaxRedeemEntries = 7
 
-	DefaultUSCDenom    = "ausc"
-	DefaultUSCDesc     = "USC native token (atto USC)"
-	DefaultUSCDecimals = 18
+	DefaultUSCDenom    = "uusc"
+	DefaultUSCDesc     = "USC native token (micro USC)"
+	DefaultUSCDecimals = 6
 )
 
 // Params storage keys.
@@ -94,14 +94,9 @@ func (p Params) Validate() error {
 	}
 
 	// USC is not a part of Collaterals
-	// USC decimals is GTE Collaterals
 	for _, colMeta := range p.CollateralMetas {
 		if colMeta.Denom == p.UscMeta.Denom {
 			return fmt.Errorf("usc_meta denom (%s) is used within collateral_metas", p.UscMeta.Denom)
-		}
-
-		if colMeta.Decimals > p.UscMeta.Decimals {
-			return fmt.Errorf("collateral_metas token (%s) with decimals (%d) must be LTE usc_meta decimals (%d)", colMeta.Denom, colMeta.Decimals, p.UscMeta.Decimals)
 		}
 	}
 

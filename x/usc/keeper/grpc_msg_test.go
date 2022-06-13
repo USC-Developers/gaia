@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkErrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/gaia/v7/x/usc/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -14,16 +15,30 @@ func TestUSCKeeperMsgMintUSC(t *testing.T) {
 		name           string
 		colCoinsToSwap string
 		//
-		errExpected    error
-		uscAmtExpected string
+		errExpected     error
+		uscAmtExpected  string
+		colUsedExpected string
 	}
 
 	testCases := []testCase{
 		{
-			name:           "Mint 3.0 USC tokens",
-			colCoinsToSwap: "1000000000000000000abusd,1000000uusdt,1000musdc", // 1.0 BUSD, 1.0 USDT, 1.0 USDC
-			errExpected:    nil,
-			uscAmtExpected: "3000000000000000000", // 3.0 USC
+			name:            "OK: mint 3.0 USC tokens (no collateral leftovers)",
+			colCoinsToSwap:  "1000000000nbusd,1000000uusdt,1000musdc", // 1.0 BUSD, 1.0 USDT, 1.0 USDC
+			errExpected:     nil,
+			uscAmtExpected:  "3000000",                                // 3.0 USC
+			colUsedExpected: "1000000000nbusd,1000000uusdt,1000musdc", // all
+		},
+		{
+			name:            "OK: mint 3.0 USC tokens (with collateral leftovers)",
+			colCoinsToSwap:  "1000000100nbusd,1000000uusdt,1000musdc", // 1.000000100 BUSD, 1.0 USDT, 1.0 USDC
+			errExpected:     nil,
+			uscAmtExpected:  "3000000",                                // 3.0 USC
+			colUsedExpected: "1000000000nbusd,1000000uusdt,1000musdc", // 1.0 BUSD, 1.0 USDT, 1.0 USDC
+		},
+		{
+			name:           "Fail: collateral is too small",
+			colCoinsToSwap: "100nbusd", // 1.000000100 BUSD
+			errExpected:    sdkErrors.ErrInsufficientFunds,
 		},
 	}
 
@@ -59,6 +74,15 @@ func TestUSCKeeperMsgMintUSC(t *testing.T) {
 				res.MintedAmount.String(),
 			)
 
+			// Verify collaterals used
+			colUsedExpected, err := sdk.ParseCoinsNormalized(tc.colUsedExpected)
+			require.NoError(t, err)
+
+			assert.Equal(t,
+				colUsedExpected.String(),
+				sdk.NewCoins(res.CollateralsAmount...).String(),
+			)
+
 			// Verify account balance
 			assert.Equal(t, uscMintedCoinExpected.String(),
 				te.app.BankKeeper.GetBalance(te.ctx, accAddr, types.DefaultUSCDenom).String(),
@@ -66,7 +90,7 @@ func TestUSCKeeperMsgMintUSC(t *testing.T) {
 
 			// Verify Active pool balance
 			assert.Equal(t,
-				swapColCoins.String(),
+				colUsedExpected.String(),
 				te.app.USCKeeper.ActivePool(te.ctx).String(),
 			)
 		})
@@ -86,28 +110,24 @@ func TestUSCKeeperMsgRedeemCollateral(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			name:                     "Declined redeem: USC amount is too small",
-			uscAmtToRedeem:           "100000",         // 0.0000000000001 USC
-			activePoolCoins:          "100000000uusdt", // 100.000000 USDT
-			errExpected:              types.ErrRedeemDeclined,
-			uscAmtLeftExpected:       "100000", // same amount
-			colCoinsRedeemedExpected: "",
-		},
-		{
-			name:                     "Partially filled",
-			uscAmtToRedeem:           "10020000000000000", // 0.010020 USC
-			activePoolCoins:          "5musdc,10uusdt",    // 0.005 USDC, 0.000010 USDT
-			errExpected:              nil,
-			uscAmtLeftExpected:       "5010000000000000", // 0.005010 USC
+			name:                     "OK: partially filled",
+			uscAmtToRedeem:           "10020",          // 0.010020 USC
+			activePoolCoins:          "5musdc,10uusdt", // 0.005 USDC, 0.000010 USDT
+			uscAmtLeftExpected:       "5010",           // 0.005010 USC
 			colCoinsRedeemedExpected: "5musdc,10uusdt",
 		},
 		{
-			name:                     "Fully filled",
-			uscAmtToRedeem:           "130000000000000000000",                              // 130.0 USC
-			activePoolCoins:          "75000000000000000000abusd,50000000uusdt,25000musdc", // 75.0 BUSD, 50.0 USDT, 25.0 USDC,
-			errExpected:              nil,
-			uscAmtLeftExpected:       "0", // none
-			colCoinsRedeemedExpected: "75000000000000000000abusd,50000000uusdt,5000musdc",
+			name:                     "OK: fully filled",
+			uscAmtToRedeem:           "130000000",                                 // 130.0 USC
+			activePoolCoins:          "75000000000nbusd,50000000uusdt,25000musdc", // 75.0 BUSD, 50.0 USDT, 25.0 USDC
+			uscAmtLeftExpected:       "0",                                         // none
+			colCoinsRedeemedExpected: "75000000000nbusd,50000000uusdt,5000musdc",  // 75.0 BUSD, 50.0 USDT, 5.0 USDC
+		},
+		{
+			name:            "Fail: USC amount is too small",
+			uscAmtToRedeem:  "1",        // 0.000001 USC
+			activePoolCoins: "999nbusd", // 0.000000999 BUSD
+			errExpected:     sdkErrors.ErrInsufficientFunds,
 		},
 	}
 
@@ -129,20 +149,6 @@ func TestUSCKeeperMsgRedeemCollateral(t *testing.T) {
 			if tc.errExpected != nil {
 				require.Error(t, err)
 				assert.ErrorIs(t, err, tc.errExpected)
-
-				// Ensure balances have not chagned
-				assert.Equal(t,
-					accCoins.String(),
-					te.app.BankKeeper.GetAllBalances(te.ctx, accAddr).String(),
-				)
-				assert.Equal(t,
-					activePoolCoins.String(),
-					te.app.USCKeeper.ActivePool(te.ctx).String(),
-				)
-				assert.True(t,
-					te.app.USCKeeper.RedeemingPool(te.ctx).IsZero(),
-				)
-
 				return
 			}
 			require.NoError(t, err)
