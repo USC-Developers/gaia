@@ -16,7 +16,7 @@ message GenesisState {
   ];
 
   // redeem_entries are active redeeming queue objects.
-  repeated RedeemEntry redeem_entries =2 [
+  repeated RedeemEntry redeem_entries = 2 [
     (gogoproto.nullable) = false
   ];
 }

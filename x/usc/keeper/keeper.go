@@ -130,7 +130,7 @@ func (k Keeper) ConvertUSCToCollaterals(ctx sdk.Context, uscCoin sdk.Coin) (uscU
 	for _, poolCoin := range poolCoins {
 		poolMeta, _ := colMetas[poolCoin.Denom] // no need to check the error, since it is checked above
 
-		// Convert collateral -> USC to make it comparable (no amt loss here, since USC decimals are always GTE collateral's)
+		// Convert collateral -> USC to make it comparable
 		poolConvertedCoin, err := poolMeta.ConvertCoin(poolCoin, uscMeta)
 		if err != nil {
 			retErr = sdkErrors.Wrapf(types.ErrInternal, "converting pool token (%s) to USC: %v", poolCoin, err)
@@ -143,7 +143,7 @@ func (k Keeper) ConvertUSCToCollaterals(ctx sdk.Context, uscCoin sdk.Coin) (uscU
 			uscReduceCoin = poolConvertedCoin
 		}
 
-		// Convert USC reduce amount to collateral (amt loss could happen here)
+		// Convert USC reduce amount to collateral
 		colCoin, uscReduceUsedCoin, err := uscMeta.ConvertCoin2(uscReduceCoin, poolMeta)
 		if err != nil {
 			retErr = sdkErrors.Wrapf(types.ErrInternal, "converting USC reduce token (%s) to collateral denom (%s): %v", uscReduceCoin, poolMeta.Denom, err)
