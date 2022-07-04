@@ -16,6 +16,9 @@ func (m TokenMeta) Validate() error {
 	if m.Decimals == 0 {
 		return fmt.Errorf("tokenMeta (%s): decimals must be GT 0", m.Denom)
 	}
+	if m.Decimals > 18 {
+		return fmt.Errorf("tokenMeta (%s): decimals must be LT 18", m.Denom)
+	}
 
 	return nil
 }
@@ -104,7 +107,7 @@ func (m TokenMeta) ConvertCoin2(coin sdk.Coin, dstMeta TokenMeta) (dstCoin sdk.C
 	return
 }
 
-// NormalizeCoin converts sdk.Coin to a smaller decimals unit.
+// NormalizeCoin converts sdk.Coin to a higher decimals unit.
 // Function is a variation of sdk.NormalizeCoin.
 func (m TokenMeta) NormalizeCoin(coin sdk.Coin, dstMeta TokenMeta) (sdk.Coin, error) {
 	if dstMeta.Decimals < m.Decimals {

@@ -25,9 +25,9 @@ func (k Keeper) CollateralMetas(ctx sdk.Context) (res []types.TokenMeta) {
 	return
 }
 
-// BaseMeta returns meta with the minimum decimals amount (to normalize coins).
+// BaseMeta returns meta with the maximum decimals amount (to normalize coins).
 func (k Keeper) BaseMeta(ctx sdk.Context) types.TokenMeta {
-	uscMeta := k.USCMeta(ctx)
+	uscMeta := k.USCMeta()
 	minMeta := uscMeta
 
 	for _, meta := range k.CollateralMetas(ctx) {
@@ -52,9 +52,8 @@ func (k Keeper) CollateralMetasSet(ctx sdk.Context) map[string]types.TokenMeta {
 }
 
 // USCMeta returns the USC token meta.
-func (k Keeper) USCMeta(ctx sdk.Context) (res types.TokenMeta) {
-	k.paramStore.Get(ctx, types.ParamsKeyUSCMeta, &res)
-	return
+func (k Keeper) USCMeta() types.TokenMeta {
+	return types.USCMeta
 }
 
 // GetParams returns all module parameters.
@@ -63,7 +62,6 @@ func (k Keeper) GetParams(ctx sdk.Context) types.Params {
 		k.RedeemDur(ctx),
 		k.MaxRedeemEntries(ctx),
 		k.CollateralMetas(ctx),
-		k.USCMeta(ctx),
 	)
 }
 

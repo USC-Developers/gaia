@@ -57,7 +57,7 @@ func RedeemingQueueInvariant(k Keeper) sdk.Invariant {
 // That ensures that all minted / burned operations didn't lost any of USC tokens.
 func USCSupplyInvariant(k Keeper) sdk.Invariant {
 	return func(ctx sdk.Context) (string, bool) {
-		uscSupplyExpected := k.bankKeeper.GetSupply(ctx, k.USCMeta(ctx).Denom)
+		uscSupplyExpected := k.bankKeeper.GetSupply(ctx, k.USCMeta().Denom)
 
 		colPoolCurrent := k.ActivePool(ctx)
 		uscPoolCalculated, _, err := k.ConvertCollateralsToUSC(ctx, colPoolCurrent)

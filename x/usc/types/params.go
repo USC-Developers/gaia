@@ -14,7 +14,6 @@ const (
 	DefaultMaxRedeemEntries = 7
 
 	DefaultUSCDenom    = "uusc"
-	DefaultUSCDesc     = "USC native token (micro USC)"
 	DefaultUSCDecimals = 6
 )
 
@@ -26,15 +25,20 @@ var (
 	ParamsKeyUSCMeta          = []byte("USCMeta")
 )
 
+// USCMeta is a hardcoded token meta for the USC native token.
+var USCMeta = TokenMeta{
+	Denom:    DefaultUSCDenom,
+	Decimals: DefaultUSCDecimals,
+}
+
 var _ paramsTypes.ParamSet = &Params{}
 
 // NewParams creates a new Params object.
-func NewParams(redeemDur time.Duration, maxRedeemEntries uint32, collateralMetas []TokenMeta, uscMeta TokenMeta) Params {
+func NewParams(redeemDur time.Duration, maxRedeemEntries uint32, collateralMetas []TokenMeta) Params {
 	return Params{
 		RedeemDur:        redeemDur,
 		MaxRedeemEntries: maxRedeemEntries,
 		CollateralMetas:  collateralMetas,
-		UscMeta:          uscMeta,
 	}
 }
 
@@ -44,11 +48,6 @@ func DefaultParams() Params {
 		RedeemDur:        DefaultRedeemPeriod,
 		MaxRedeemEntries: DefaultMaxRedeemEntries,
 		CollateralMetas:  []TokenMeta{},
-		UscMeta: TokenMeta{
-			Denom:       DefaultUSCDenom,
-			Decimals:    DefaultUSCDecimals,
-			Description: DefaultUSCDesc,
-		},
 	}
 }
 
@@ -70,7 +69,6 @@ func (p *Params) ParamSetPairs() paramsTypes.ParamSetPairs {
 		paramsTypes.NewParamSetPair(ParamsKeyRedeemDur, &p.RedeemDur, validateRedeemDurParam),
 		paramsTypes.NewParamSetPair(ParamsKeyMaxRedeemEntries, &p.MaxRedeemEntries, validateMaxRedeemEntriesParam),
 		paramsTypes.NewParamSetPair(ParamsKeyCollateralMetas, &p.CollateralMetas, validateCollateralMetasParam),
-		paramsTypes.NewParamSetPair(ParamsKeyUSCMeta, &p.UscMeta, validateUscMeta),
 	}
 }
 
@@ -87,17 +85,6 @@ func (p Params) Validate() error {
 
 	if err := validateCollateralMetasParam(p.CollateralMetas); err != nil {
 		return err
-	}
-
-	if err := validateUscMeta(p.UscMeta); err != nil {
-		return err
-	}
-
-	// USC is not a part of Collaterals
-	for _, colMeta := range p.CollateralMetas {
-		if colMeta.Denom == p.UscMeta.Denom {
-			return fmt.Errorf("usc_meta denom (%s) is used within collateral_metas", p.UscMeta.Denom)
-		}
 	}
 
 	return nil
@@ -157,30 +144,14 @@ func validateCollateralMetasParam(i interface{}) (retErr error) {
 			return err
 		}
 
+		if meta.Denom == USCMeta.Denom {
+			return fmt.Errorf("usc denom (%s) found", USCMeta.Denom)
+		}
+
 		if _, ok := denomSet[meta.Denom]; ok {
 			return fmt.Errorf("tokenMeta (%s): duplicated", meta.Denom)
 		}
 		denomSet[meta.Denom] = struct{}{}
-	}
-
-	return
-}
-
-// validateUscMeta validates the Usc param.
-func validateUscMeta(i interface{}) (retErr error) {
-	defer func() {
-		if retErr != nil {
-			retErr = fmt.Errorf("usc_meta param: %w", retErr)
-		}
-	}()
-
-	v, ok := i.(TokenMeta)
-	if !ok {
-		return fmt.Errorf("invalid parameter type (%T, []string is expected)", i)
-	}
-
-	if err := v.Validate(); err != nil {
-		return err
 	}
 
 	return

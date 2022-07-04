@@ -116,8 +116,8 @@ echo "Change other genesis settings"
       mv "${node_dir}/config/tmp.json" "${node_dir}/config/genesis.json"
     echo
 
-    echo "  Changing USC redeem period to 15s"
-      jq '.app_state.usc.params.redeem_dur = "15s"' "${node_dir}/config/genesis.json" > "${node_dir}/config/tmp.json"
+    echo "  Changing USC redeem period to 1m"
+      jq '.app_state.usc.params.redeem_dur = "1m"' "${node_dir}/config/genesis.json" > "${node_dir}/config/tmp.json"
       mv "${node_dir}/config/tmp.json" "${node_dir}/config/genesis.json"
     echo
   else

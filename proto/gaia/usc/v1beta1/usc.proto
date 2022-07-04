@@ -31,13 +31,6 @@ message Params {
     (gogoproto.moretags) = "yaml:\"collateral_metas\"",
     (gogoproto.nullable) = false
   ];
-
-  // usc_meta defines the USC token meta.
-  // USC token must has a higher precision (number of decimals) than other collaterals.
-  TokenMeta usc_meta = 4 [
-    (gogoproto.moretags) = "yaml:\"usc_meta\"",
-    (gogoproto.nullable) = false
-  ];
 }
 
 // TokenMeta defines USC / collateral token metadata.

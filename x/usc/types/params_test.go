@@ -21,7 +21,6 @@ func TestUSCParamsTest(t *testing.T) {
 			{Denom: "usdt", Decimals: 6},
 			{Denom: "musdc", Decimals: 3},
 		},
-		UscMeta: TokenMeta{Denom: "ausc", Decimals: 8},
 	}
 
 	testCases := []testCase{
@@ -44,7 +43,7 @@ func TestUSCParamsTest(t *testing.T) {
 			name: "Fail: Meta: invalid denom",
 			buildInput: func() Params {
 				p := validParams
-				p.UscMeta.Denom = InvalidDenom
+				p.CollateralMetas[0].Denom = InvalidDenom
 				return p
 			},
 			errExpected: true,
@@ -53,7 +52,7 @@ func TestUSCParamsTest(t *testing.T) {
 			name: "Fail: Meta: zero decimals",
 			buildInput: func() Params {
 				p := validParams
-				p.UscMeta.Decimals = 0
+				p.CollateralMetas[0].Decimals = 0
 				return p
 			},
 			errExpected: true,
@@ -62,7 +61,7 @@ func TestUSCParamsTest(t *testing.T) {
 			name: "Fail: CollateralMetas: usc denom included",
 			buildInput: func() Params {
 				p := validParams
-				p.CollateralMetas = append(p.CollateralMetas, p.UscMeta)
+				p.CollateralMetas = append(p.CollateralMetas, USCMeta)
 				return p
 			},
 			errExpected: true,
