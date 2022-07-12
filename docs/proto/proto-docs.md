@@ -54,6 +54,7 @@ Params defines the parameters for the x/usc module.
 | `redeem_dur` | [google.protobuf.Duration](#google.protobuf.Duration) |  | redeem_dur defines USC -> collateral redeem duration (how long does it takes to convert). |
 | `max_redeem_entries` | [uint32](#uint32) |  | max_redeem_entries is a max number of concurrent redeem operations per account. |
 | `collateral_metas` | [TokenMeta](#gaia.usc.v1beta1.TokenMeta) | repeated | collateral_metas defines a set of collateral token metas that are supported by the module. |
+| `usc_ibc_denoms` | [string](#string) | repeated | usc_ibc_denoms defines a set of USC denoms that are supported by the redeem operation in addition to the native token ("uusc"). Those denoms are derivatives of the native token from an IBC transfers (A->B->C->A transfers). |
 
 
 

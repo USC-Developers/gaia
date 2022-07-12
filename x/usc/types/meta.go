@@ -4,12 +4,13 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	ibcTransferTypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
 	yaml "gopkg.in/yaml.v2"
 )
 
 // Validate performs a basic TokenMeta validation.
 func (m TokenMeta) Validate() error {
-	if err := sdk.ValidateDenom(m.Denom); err != nil {
+	if err := ibcTransferTypes.ValidateIBCDenom(m.Denom); err != nil {
 		return fmt.Errorf("tokenMeta (%s): validation: %w", m.Denom, err)
 	}
 

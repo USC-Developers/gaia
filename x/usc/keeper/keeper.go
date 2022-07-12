@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"sort"
+	"strings"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -55,6 +56,32 @@ func (k Keeper) RedeemingPool(ctx sdk.Context) sdk.Coins {
 	return k.bankKeeper.GetAllBalances(ctx, poolAcc.GetAddress())
 }
 
+// USCMetaDerivative returns USC token meta for the native coin or from the list of supported IBC derivatives.
+func (k Keeper) USCMetaDerivative(ctx sdk.Context, denom string) (types.TokenMeta, error) {
+	uscMeta := k.USCMeta()
+
+	if denom == uscMeta.Denom {
+		return uscMeta, nil
+	}
+
+	uscIbcDenoms := k.USCIbcDenoms(ctx)
+	for _, ibcDenom := range uscIbcDenoms {
+		if denom != ibcDenom {
+			continue
+		}
+
+		uscMeta.Denom = ibcDenom
+		return uscMeta, nil
+	}
+
+	return types.TokenMeta{}, sdkErrors.Wrapf(
+		types.ErrInvalidUSC,
+		"got (%s), expected (%s / [%s])",
+		denom,
+		uscMeta.Denom, strings.Join(uscIbcDenoms, ","),
+	)
+}
+
 // ConvertCollateralsToUSC converts collateral coins to USC coin in 1:1 relation.
 func (k Keeper) ConvertCollateralsToUSC(ctx sdk.Context, colCoins sdk.Coins) (uscCoin sdk.Coin, colUsedCoins sdk.Coins, retErr error) {
 	uscMeta, colMetas := k.USCMeta(), k.CollateralMetasSet(ctx)
@@ -64,7 +91,16 @@ func (k Keeper) ConvertCollateralsToUSC(ctx sdk.Context, colCoins sdk.Coins) (us
 		// Check if denom is supported
 		colMeta, ok := colMetas[colCoin.Denom]
 		if !ok {
-			retErr = sdkErrors.Wrapf(types.ErrUnsupportedCollateral, "denom (%s)", colCoin.Denom)
+			supportedColDenoms := make([]string, 0, len(colMetas))
+			for colDenom := range colMetas {
+				supportedColDenoms = append(supportedColDenoms, colDenom)
+			}
+
+			retErr = sdkErrors.Wrapf(types.ErrUnsupportedCollateral,
+				"got (%s), expected ([%s])",
+				colCoin.Denom,
+				strings.Join(supportedColDenoms, ","),
+			)
 			return
 		}
 
@@ -84,11 +120,12 @@ func (k Keeper) ConvertCollateralsToUSC(ctx sdk.Context, colCoins sdk.Coins) (us
 // ConvertUSCToCollaterals converts USC coin to collateral coins in 1:1 relation iterating module's Active pool from the highest supply to the lowest.
 // Returns converted USC (equals to input if there are no leftovers)  and collaterals coins.
 func (k Keeper) ConvertUSCToCollaterals(ctx sdk.Context, uscCoin sdk.Coin) (uscUsedCoin sdk.Coin, colCoins sdk.Coins, retErr error) {
-	uscMeta, colMetas := k.USCMeta(), k.CollateralMetasSet(ctx)
+	colMetas := k.CollateralMetasSet(ctx)
 
-	// Check source denom
-	if uscCoin.Denom != uscMeta.Denom {
-		retErr = sdkErrors.Wrapf(types.ErrInvalidUSC, "got (%s), expected (%s)", uscCoin.Denom, uscMeta.Denom)
+	// Check source denom and get USC meta
+	uscMeta, err := k.USCMetaDerivative(ctx, uscCoin.Denom)
+	if err != nil {
+		retErr = err
 		return
 	}
 
@@ -128,7 +165,7 @@ func (k Keeper) ConvertUSCToCollaterals(ctx sdk.Context, uscCoin sdk.Coin) (uscU
 	// Fill up the desired USC amount with the current Active pool collateral supply
 	uscLeftToFillCoin := uscCoin
 	for _, poolCoin := range poolCoins {
-		poolMeta, _ := colMetas[poolCoin.Denom] // no need to check the error, since it is checked above
+		poolMeta := colMetas[poolCoin.Denom] // no need to check the error, since it is checked above
 
 		// Convert collateral -> USC to make it comparable
 		poolConvertedCoin, err := poolMeta.ConvertCoin(poolCoin, uscMeta)

@@ -2,9 +2,11 @@ package types
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	paramsTypes "github.com/cosmos/cosmos-sdk/x/params/types"
+	ibcTransferTypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -22,7 +24,7 @@ var (
 	ParamsKeyRedeemDur        = []byte("RedeemDur")
 	ParamsKeyMaxRedeemEntries = []byte("MaxRedeemEntries")
 	ParamsKeyCollateralMetas  = []byte("CollateralMetas")
-	ParamsKeyUSCMeta          = []byte("USCMeta")
+	ParamsKeyUscIbcDenoms     = []byte("UscIbcDenoms")
 )
 
 // USCMeta is a hardcoded token meta for the USC native token.
@@ -34,11 +36,12 @@ var USCMeta = TokenMeta{
 var _ paramsTypes.ParamSet = &Params{}
 
 // NewParams creates a new Params object.
-func NewParams(redeemDur time.Duration, maxRedeemEntries uint32, collateralMetas []TokenMeta) Params {
+func NewParams(redeemDur time.Duration, maxRedeemEntries uint32, collateralMetas []TokenMeta, uscIbcDenoms []string) Params {
 	return Params{
 		RedeemDur:        redeemDur,
 		MaxRedeemEntries: maxRedeemEntries,
 		CollateralMetas:  collateralMetas,
+		UscIbcDenoms:     uscIbcDenoms,
 	}
 }
 
@@ -48,6 +51,7 @@ func DefaultParams() Params {
 		RedeemDur:        DefaultRedeemPeriod,
 		MaxRedeemEntries: DefaultMaxRedeemEntries,
 		CollateralMetas:  []TokenMeta{},
+		UscIbcDenoms:     []string{},
 	}
 }
 
@@ -69,6 +73,7 @@ func (p *Params) ParamSetPairs() paramsTypes.ParamSetPairs {
 		paramsTypes.NewParamSetPair(ParamsKeyRedeemDur, &p.RedeemDur, validateRedeemDurParam),
 		paramsTypes.NewParamSetPair(ParamsKeyMaxRedeemEntries, &p.MaxRedeemEntries, validateMaxRedeemEntriesParam),
 		paramsTypes.NewParamSetPair(ParamsKeyCollateralMetas, &p.CollateralMetas, validateCollateralMetasParam),
+		paramsTypes.NewParamSetPair(ParamsKeyUscIbcDenoms, &p.UscIbcDenoms, validateUscIbcDenomsParam),
 	}
 }
 
@@ -84,6 +89,10 @@ func (p Params) Validate() error {
 	}
 
 	if err := validateCollateralMetasParam(p.CollateralMetas); err != nil {
+		return err
+	}
+
+	if err := validateUscIbcDenomsParam(p.UscIbcDenoms); err != nil {
 		return err
 	}
 
@@ -135,7 +144,7 @@ func validateCollateralMetasParam(i interface{}) (retErr error) {
 
 	v, ok := i.([]TokenMeta)
 	if !ok {
-		return fmt.Errorf("invalid parameter type (%T, []string is expected)", i)
+		return fmt.Errorf("invalid parameter type (%T, []TokenMeta is expected)", i)
 	}
 
 	denomSet := make(map[string]struct{})
@@ -152,6 +161,38 @@ func validateCollateralMetasParam(i interface{}) (retErr error) {
 			return fmt.Errorf("tokenMeta (%s): duplicated", meta.Denom)
 		}
 		denomSet[meta.Denom] = struct{}{}
+	}
+
+	return
+}
+
+// validateUscIbcDenomsParam validates the UscIbcDenoms param.
+func validateUscIbcDenomsParam(i interface{}) (retErr error) {
+	defer func() {
+		if retErr != nil {
+			retErr = fmt.Errorf("usc_ibc_denoms param: %w", retErr)
+		}
+	}()
+
+	v, ok := i.([]string)
+	if !ok {
+		return fmt.Errorf("invalid parameter type (%T, []string is expected)", i)
+	}
+
+	denomSet := make(map[string]struct{})
+	for _, denom := range v {
+		if !strings.HasPrefix(denom, ibcTransferTypes.DenomPrefix) {
+			return fmt.Errorf("denom (%s): not an IBC token (%s/ prefix )", denom, ibcTransferTypes.DenomPrefix)
+		}
+
+		if err := ibcTransferTypes.ValidateIBCDenom(denom); err != nil {
+			return fmt.Errorf("denom (%s): validation: %w", denom, err)
+		}
+
+		if _, ok := denomSet[denom]; ok {
+			return fmt.Errorf("denom (%s): duplicated", denom)
+		}
+		denomSet[denom] = struct{}{}
 	}
 
 	return

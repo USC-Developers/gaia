@@ -31,6 +31,14 @@ message Params {
     (gogoproto.moretags) = "yaml:\"collateral_metas\"",
     (gogoproto.nullable) = false
   ];
+
+  // usc_ibc_denoms defines a set of USC denoms that are supported by the redeem operation in addition
+  // to the native token ("uusc"). Those denoms are derivatives of the native token from an IBC transfers
+  // (A->B->C->A transfers).
+  repeated string usc_ibc_denoms = 4 [
+    (gogoproto.moretags) = "yaml:\"usc_ibc_denoms\"",
+    (gogoproto.nullable) = false
+  ];
 }
 
 // TokenMeta defines USC / collateral token metadata.

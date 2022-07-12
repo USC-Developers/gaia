@@ -25,6 +25,12 @@ func (k Keeper) CollateralMetas(ctx sdk.Context) (res []types.TokenMeta) {
 	return
 }
 
+// USCIbcDenoms returns supported USC denom which are derivatives of the native USC (IBC transferred tokens).
+func (k Keeper) USCIbcDenoms(ctx sdk.Context) (res []string) {
+	k.paramStore.Get(ctx, types.ParamsKeyUscIbcDenoms, &res)
+	return
+}
+
 // BaseMeta returns meta with the maximum decimals amount (to normalize coins).
 func (k Keeper) BaseMeta(ctx sdk.Context) types.TokenMeta {
 	uscMeta := k.USCMeta()
@@ -62,6 +68,7 @@ func (k Keeper) GetParams(ctx sdk.Context) types.Params {
 		k.RedeemDur(ctx),
 		k.MaxRedeemEntries(ctx),
 		k.CollateralMetas(ctx),
+		k.USCIbcDenoms(ctx),
 	)
 }
 

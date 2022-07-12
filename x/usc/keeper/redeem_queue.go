@@ -19,7 +19,7 @@ func (k Keeper) BeginRedeeming(ctx sdk.Context, accAddr sdk.AccAddress, amount s
 	}
 	entry.AddOperation(ctx.BlockHeight(), completionTime, amount)
 
-	if uint32(entry.OperationsLeft()) >= k.MaxRedeemEntries(ctx) {
+	if uint32(entry.OperationsLeft()) > k.MaxRedeemEntries(ctx) {
 		return time.Time{}, sdkErrors.Wrapf(types.ErrMaxRedeemEntries, "wait for some redeems to complete")
 	}
 

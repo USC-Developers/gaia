@@ -15,25 +15,30 @@ func TestUSCKeeperMsgMintUSC(t *testing.T) {
 		name           string
 		colCoinsToSwap string
 		//
-		errExpected     error
-		uscAmtExpected  string
-		colUsedExpected string
+		errExpected          error
+		uscCoinExpected      string
+		colCoinsUsedExpected string
 	}
 
 	testCases := []testCase{
 		{
-			name:            "OK: mint 3.0 USC tokens (no collateral leftovers)",
-			colCoinsToSwap:  "1000000000nbusd,1000000uusdt,1000musdc", // 1.0 BUSD, 1.0 USDT, 1.0 USDC
-			errExpected:     nil,
-			uscAmtExpected:  "3000000",                                // 3.0 USC
-			colUsedExpected: "1000000000nbusd,1000000uusdt,1000musdc", // all
+			name:                 "OK: mint 3.0 USC tokens (no collateral leftovers)",
+			colCoinsToSwap:       "1000000000nbusd,1000000uusdt,1000musdc", // 1.0 BUSD, 1.0 USDT, 1.0 USDC
+			errExpected:          nil,
+			uscCoinExpected:      "3000000uusc",                            // 3.0 USC
+			colCoinsUsedExpected: "1000000000nbusd,1000000uusdt,1000musdc", // all
 		},
 		{
-			name:            "OK: mint 3.0 USC tokens (with collateral leftovers)",
-			colCoinsToSwap:  "1000000100nbusd,1000000uusdt,1000musdc", // 1.000000100 BUSD, 1.0 USDT, 1.0 USDC
-			errExpected:     nil,
-			uscAmtExpected:  "3000000",                                // 3.0 USC
-			colUsedExpected: "1000000000nbusd,1000000uusdt,1000musdc", // 1.0 BUSD, 1.0 USDT, 1.0 USDC
+			name:                 "OK: mint 3.0 USC tokens (with collateral leftovers)",
+			colCoinsToSwap:       "1000000100nbusd,1000000uusdt,1000musdc", // 1.000000100 BUSD, 1.0 USDT, 1.0 USDC
+			errExpected:          nil,
+			uscCoinExpected:      "3000000uusc",                            // 3.0 USC
+			colCoinsUsedExpected: "1000000000nbusd,1000000uusdt,1000musdc", // 1.0 BUSD, 1.0 USDT, 1.0 USDC
+		},
+		{
+			name:           "Fail: unsupported collateral",
+			colCoinsToSwap: "1000000000mbusd", // 1.0 BUSD (unsupported)
+			errExpected:    types.ErrUnsupportedCollateral,
 		},
 		{
 			name:           "Fail: collateral is too small",
@@ -65,17 +70,16 @@ func TestUSCKeeperMsgMintUSC(t *testing.T) {
 			require.NotNil(t, res)
 
 			// Verify minted USC
-			uscAmtExpected, ok := sdk.NewIntFromString(tc.uscAmtExpected)
-			require.True(t, ok)
-			uscMintedCoinExpected := sdk.NewCoin(types.DefaultUSCDenom, uscAmtExpected)
+			uscCoinExpected, err := sdk.ParseCoinNormalized(tc.uscCoinExpected)
+			require.NoError(t, err)
 
 			assert.Equal(t,
-				uscMintedCoinExpected.String(),
+				uscCoinExpected.String(),
 				res.MintedAmount.String(),
 			)
 
 			// Verify collaterals used
-			colUsedExpected, err := sdk.ParseCoinsNormalized(tc.colUsedExpected)
+			colUsedExpected, err := sdk.ParseCoinsNormalized(tc.colCoinsUsedExpected)
 			require.NoError(t, err)
 
 			assert.Equal(t,
@@ -84,8 +88,8 @@ func TestUSCKeeperMsgMintUSC(t *testing.T) {
 			)
 
 			// Verify account balance
-			assert.Equal(t, uscMintedCoinExpected.String(),
-				te.app.BankKeeper.GetBalance(te.ctx, accAddr, types.DefaultUSCDenom).String(),
+			assert.Equal(t, uscCoinExpected.String(),
+				te.app.BankKeeper.GetBalance(te.ctx, accAddr, uscCoinExpected.Denom).String(),
 			)
 
 			// Verify Active pool balance
@@ -100,32 +104,45 @@ func TestUSCKeeperMsgMintUSC(t *testing.T) {
 func TestUSCKeeperMsgRedeemCollateral(t *testing.T) {
 	type testCase struct {
 		name            string
-		uscAmtToRedeem  string
+		uscCoinToRedeem string
 		activePoolCoins string
 		//
 		errExpected              error
-		uscAmtLeftExpected       string
+		uscCoinLeftExpected      string
 		colCoinsRedeemedExpected string
 	}
 
 	testCases := []testCase{
 		{
-			name:                     "OK: partially filled",
-			uscAmtToRedeem:           "10020",          // 0.010020 USC
+			name:                     "OK: native: partially filled",
+			uscCoinToRedeem:          "10020uusc",      // 0.010020 USC
 			activePoolCoins:          "5musdc,10uusdt", // 0.005 USDC, 0.000010 USDT
-			uscAmtLeftExpected:       "5010",           // 0.005010 USC
+			uscCoinLeftExpected:      "5010uusc",       // 0.005010 USC
 			colCoinsRedeemedExpected: "5musdc,10uusdt",
 		},
 		{
-			name:                     "OK: fully filled",
-			uscAmtToRedeem:           "130000000",                                 // 130.0 USC
+			name:                     "OK: native: fully filled",
+			uscCoinToRedeem:          "130000000uusc",                             // 130.0 USC
 			activePoolCoins:          "75000000000nbusd,50000000uusdt,25000musdc", // 75.0 BUSD, 50.0 USDT, 25.0 USDC
-			uscAmtLeftExpected:       "0",                                         // none
+			uscCoinLeftExpected:      "0uusc",                                     // none
 			colCoinsRedeemedExpected: "75000000000nbusd,50000000uusdt,5000musdc",  // 75.0 BUSD, 50.0 USDT, 5.0 USDC
 		},
 		{
+			name:                     "OK: derivative: fully filled",
+			uscCoinToRedeem:          "100000000" + USCDerivativeDenom1, // 100.0 IBC USC
+			activePoolCoins:          "99500000uusdt,500musdc",          // 99.6 USDT, 0.5 USDC
+			uscCoinLeftExpected:      "0" + USCDerivativeDenom1,         // none
+			colCoinsRedeemedExpected: "99500000uusdt,500musdc",          // 99.6 USDT, 0.5 USDC
+		},
+		{
+			name:            "Fail: unsupported USC derivative",
+			uscCoinToRedeem: "10000ibc/7F1D3FCF4AE79E1554D670D1AD949A9BA4E4A3C76C63093E17E446A46061A7A2", // 0.010000 IBC USC (unsupported)
+			activePoolCoins: "999nbusd",                                                                  // 0.000000999 BUSD
+			errExpected:     types.ErrInvalidUSC,
+		},
+		{
 			name:            "Fail: USC amount is too small",
-			uscAmtToRedeem:  "1",        // 0.000001 USC
+			uscCoinToRedeem: "1uusc",    // 0.000001 USC
 			activePoolCoins: "999nbusd", // 0.000000999 BUSD
 			errExpected:     sdkErrors.ErrInsufficientFunds,
 		},
@@ -136,7 +153,7 @@ func TestUSCKeeperMsgRedeemCollateral(t *testing.T) {
 			// Fixtures
 			te := NewTestEnv(t)
 
-			accAddr, accCoins := te.AddAccount(t, tc.uscAmtToRedeem+types.DefaultUSCDenom)
+			accAddr, accCoins := te.AddAccount(t, tc.uscCoinToRedeem)
 			uscRedeemCoin := accCoins[0]
 
 			activePoolCoins := te.AddActivePoolBalance(t, tc.activePoolCoins)
@@ -155,11 +172,10 @@ func TestUSCKeeperMsgRedeemCollateral(t *testing.T) {
 			require.NotNil(t, res)
 
 			// Build expect value
-			uscLeftAmtExpected, ok := sdk.NewIntFromString(tc.uscAmtLeftExpected)
-			require.True(t, ok)
-			uscLeftCoinExpected := sdk.NewCoin(types.DefaultUSCDenom, uscLeftAmtExpected)
+			uscLeftExpectedCoin, err := sdk.ParseCoinNormalized(tc.uscCoinLeftExpected)
+			require.NoError(t, err)
 
-			uscBurnedExpected := uscRedeemCoin.Sub(uscLeftCoinExpected)
+			uscBurnedExpected := uscRedeemCoin.Sub(uscLeftExpectedCoin)
 			completionTimeExpected := MockTimestamp.Add(te.app.USCKeeper.RedeemDur(te.ctx))
 
 			colRedeemedCoinsExpected, err := sdk.ParseCoinsNormalized(tc.colCoinsRedeemedExpected)
@@ -181,8 +197,8 @@ func TestUSCKeeperMsgRedeemCollateral(t *testing.T) {
 
 			// Verify account balance
 			assert.Equal(t,
-				uscLeftCoinExpected.String(),
-				te.app.BankKeeper.GetBalance(te.ctx, accAddr, types.DefaultUSCDenom).String(),
+				uscLeftExpectedCoin.String(),
+				te.app.BankKeeper.GetBalance(te.ctx, accAddr, uscRedeemCoin.Denom).String(),
 			)
 
 			// Verify Active pool balance

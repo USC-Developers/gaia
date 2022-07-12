@@ -21,6 +21,8 @@ var (
 	BUSDMeta = types.TokenMeta{Denom: "nbusd", Decimals: 9}
 	USDTMeta = types.TokenMeta{Denom: "uusdt", Decimals: 6}
 	USDCMeta = types.TokenMeta{Denom: "musdc", Decimals: 3}
+
+	USCDerivativeDenom1 = "ibc/000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F"
 )
 
 type TestEnv struct {
@@ -38,6 +40,7 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	// Add collateral metas
 	uscParams := app.USCKeeper.GetParams(ctx)
 	uscParams.CollateralMetas = []types.TokenMeta{BUSDMeta, USDTMeta, USDCMeta}
+	uscParams.UscIbcDenoms = []string{USCDerivativeDenom1}
 	app.USCKeeper.SetParams(ctx, uscParams)
 
 	// Build services

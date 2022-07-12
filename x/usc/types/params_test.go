@@ -21,6 +21,7 @@ func TestUSCParamsTest(t *testing.T) {
 			{Denom: "usdt", Decimals: 6},
 			{Denom: "musdc", Decimals: 3},
 		},
+		UscIbcDenoms: []string{"ibc/7F1D3FCF4AE79E1554D670D1AD949A9BA4E4A3C76C63093E17E446A46061A7A2"},
 	}
 
 	testCases := []testCase{
@@ -71,6 +72,33 @@ func TestUSCParamsTest(t *testing.T) {
 			buildInput: func() Params {
 				p := validParams
 				p.CollateralMetas = append(p.CollateralMetas, p.CollateralMetas[0])
+				return p
+			},
+			errExpected: true,
+		},
+		{
+			name: "Fail: UscIbcDenoms: duplication",
+			buildInput: func() Params {
+				p := validParams
+				p.UscIbcDenoms = append(p.UscIbcDenoms, "ibc/7F1D3FCF4AE79E1554D670D1AD949A9BA4E4A3C76C63093E17E446A46061A7A2")
+				return p
+			},
+			errExpected: true,
+		},
+		{
+			name: "Fail: UscIbcDenoms: non-IBC denom",
+			buildInput: func() Params {
+				p := validParams
+				p.UscIbcDenoms = append(p.UscIbcDenoms, "uatom")
+				return p
+			},
+			errExpected: true,
+		},
+		{
+			name: "Fail: UscIbcDenoms: invalid hash",
+			buildInput: func() Params {
+				p := validParams
+				p.UscIbcDenoms = append(p.UscIbcDenoms, "ibc/7F1D3FCF4AE79E1554D670D1AD949A9BA4E4A3C76C63093E17E446A46061A7A200")
 				return p
 			},
 			errExpected: true,
