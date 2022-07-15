@@ -18,7 +18,7 @@ func (m TokenMeta) Validate() error {
 		return fmt.Errorf("tokenMeta (%s): decimals must be GT 0", m.Denom)
 	}
 	if m.Decimals > 18 {
-		return fmt.Errorf("tokenMeta (%s): decimals must be LT 18", m.Denom)
+		return fmt.Errorf("tokenMeta (%s): decimals must be LTE 18", m.Denom)
 	}
 
 	return nil

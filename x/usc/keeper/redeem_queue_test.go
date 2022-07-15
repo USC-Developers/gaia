@@ -105,7 +105,7 @@ func TestUSCKeeperRedeemingLimit(t *testing.T) {
 	redeemCoins := sdk.NewCoins(sdk.NewCoin("uusdt", sdk.NewInt(1000)))
 
 	// Fill up available slots
-	for i := uint32(0); i < keeper.MaxRedeemEntries(ctx)-1; i++ {
+	for i := uint32(0); i < keeper.MaxRedeemEntries(ctx); i++ {
 		_, err := keeper.BeginRedeeming(ctx, accAddr, redeemCoins)
 		assert.NoError(t, err)
 	}
